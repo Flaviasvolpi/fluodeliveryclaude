@@ -23,6 +23,7 @@ import { EmpresasModule } from './empresas/empresas.module';
 import { CategoriasModule } from './categorias/categorias.module';
 import { ProdutosModule } from './produtos/produtos.module';
 import { AdicionaisModule } from './adicionais/adicionais.module';
+import { PedidosModule } from './pedidos/pedidos.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdicionaisModule } from './adicionais/adicionais.module';
     FidelidadeModule,
     CuponsModule,
     PerfilPermissoesModule,
+    PedidosModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
