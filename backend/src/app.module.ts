@@ -29,6 +29,7 @@ import { CaixaModule } from './caixa/caixa.module';
 import { CardapioApiModule } from './cardapio-api/cardapio-api.module';
 import { ClienteAuthModule } from './cliente-auth/cliente-auth.module';
 import { ExternalOrdersModule } from './external-orders/external-orders.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { ExternalOrdersModule } from './external-orders/external-orders.module';
     CardapioApiModule,
     ClienteAuthModule,
     ExternalOrdersModule,
+    UploadModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
