@@ -1,0 +1,692 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum AppRole {
+  admin
+  atendente
+  cozinha
+  entregador
+  garcom
+}
+
+enum PagamentoStatus {
+  pendente
+  pago
+  estornado
+}
+
+// ============================================
+// AUTH - Users (replaces Supabase auth.users)
+// ============================================
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  password  String
+  fullName  String?  @map("full_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  roles UserRole[]
+
+  @@map("users")
+}
+
+// ============================================
+// EMPRESAS (multi-tenant root)
+// ============================================
+
+model Empresa {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome      String
+  slug      String   @unique
+  telefone  String?
+  logoUrl   String?  @map("logo_url")
+  bannerUrl String?  @map("banner_url")
+  apiKey    String?  @unique @default(dbgenerated("gen_random_uuid()")) @map("api_key")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  contador                EmpresaContador?
+  userRoles               UserRole[]
+  categorias              Categoria[]
+  produtos                Produto[]
+  produtoVariantes        ProdutoVariante[]
+  produtoIngredientes     ProdutoIngrediente[]
+  adicionaisGrupos        AdicionaisGrupo[]
+  adicionaisItens         AdicionaisItem[]
+  produtoAdicionaisGrupos ProdutoAdicionaisGrupo[]
+  formasPagamento         FormaPagamento[]
+  configuracoes           Configuracao[]
+  pedidos                 Pedido[]
+  pedidoItens             PedidoItem[]
+  pedidoItemAdicionais    PedidoItemAdicional[]
+  clientes                Cliente[]
+  clienteEnderecos        ClienteEndereco[]
+  mesas                   Mesa[]
+  contas                  Conta[]
+  contaPagamentos         ContaPagamento[]
+  caixaSessoes            CaixaSessao[]
+  caixaRecebimentos       CaixaRecebimento[]
+  motoboyAcertos          MotoboyAcerto[]
+  entregadores            Entregador[]
+  entregadorCaixas        EntregadorCaixa[]
+  entregadorRecebimentos  EntregadorRecebimento[]
+  pedidoTiposConfig       PedidoTipoConfig[]
+  pedidoStatusConfig      PedidoStatusConfig[]
+  fidelidadeRegras        FidelidadeRegra[]
+  cupons                  Cupom[]
+  perfilPermissoes        PerfilPermissao[]
+
+  @@map("empresas")
+}
+
+model EmpresaContador {
+  empresaId    String @id @map("empresa_id") @db.Uuid
+  ultimoNumero Int    @default(0) @map("ultimo_numero")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("empresa_contadores")
+}
+
+// ============================================
+// USER ROLES
+// ============================================
+
+model UserRole {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  empresaId String  @map("empresa_id") @db.Uuid
+  role      AppRole
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role, empresaId])
+  @@index([empresaId])
+  @@map("user_roles")
+}
+
+// ============================================
+// CATEGORIAS
+// ============================================
+
+model Categoria {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String   @map("empresa_id") @db.Uuid
+  nome      String
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa  Empresa   @relation(fields: [empresaId], references: [id])
+  produtos Produto[]
+
+  @@index([empresaId])
+  @@map("categorias")
+}
+
+// ============================================
+// PRODUTOS
+// ============================================
+
+model Produto {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String   @map("empresa_id") @db.Uuid
+  categoriaId     String?  @map("categoria_id") @db.Uuid
+  nome            String
+  descricao       String?
+  ativo           Boolean  @default(true)
+  imagemUrl       String?  @map("imagem_url")
+  ordem           Int      @default(0)
+  possuiVariantes Boolean  @default(false) @map("possui_variantes")
+  custoBase       Decimal? @map("custo_base") @db.Decimal(10, 2)
+  precoBase       Decimal? @map("preco_base") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa          Empresa                  @relation(fields: [empresaId], references: [id])
+  categoria        Categoria?               @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  variantes        ProdutoVariante[]
+  ingredientes     ProdutoIngrediente[]
+  adicionaisGrupos ProdutoAdicionaisGrupo[]
+  pedidoItens      PedidoItem[]
+
+  @@index([empresaId])
+  @@map("produtos")
+}
+
+model ProdutoVariante {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId  String   @map("empresa_id") @db.Uuid
+  produtoId  String   @map("produto_id") @db.Uuid
+  nome       String
+  sku        String?
+  custo      Decimal  @default(0) @db.Decimal(10, 2)
+  precoVenda Decimal  @default(0) @map("preco_venda") @db.Decimal(10, 2)
+  ativo      Boolean  @default(true)
+  ordem      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa     Empresa     @relation(fields: [empresaId], references: [id])
+  produto     Produto     @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  pedidoItens PedidoItem[]
+
+  @@index([empresaId])
+  @@map("produto_variantes")
+}
+
+model ProdutoIngrediente {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String  @map("empresa_id") @db.Uuid
+  produtoId String  @map("produto_id") @db.Uuid
+  nome      String
+  removivel Boolean @default(true)
+  ordem     Int     @default(0)
+  ativo     Boolean @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@index([produtoId])
+  @@map("produto_ingredientes")
+}
+
+// ============================================
+// ADICIONAIS
+// ============================================
+
+model AdicionaisGrupo {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String   @map("empresa_id") @db.Uuid
+  nome      String
+  minSelect Int      @default(0) @map("min_select")
+  maxSelect Int      @default(1) @map("max_select")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa  Empresa                  @relation(fields: [empresaId], references: [id])
+  itens    AdicionaisItem[]
+  produtos ProdutoAdicionaisGrupo[]
+
+  @@index([empresaId])
+  @@map("adicionais_grupos")
+}
+
+model AdicionaisItem {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String   @map("empresa_id") @db.Uuid
+  grupoId   String   @map("grupo_id") @db.Uuid
+  nome      String
+  preco     Decimal  @default(0) @db.Decimal(10, 2)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa              Empresa               @relation(fields: [empresaId], references: [id])
+  grupo                AdicionaisGrupo       @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  pedidoItemAdicionais PedidoItemAdicional[]
+
+  @@index([empresaId])
+  @@map("adicionais_itens")
+}
+
+model ProdutoAdicionaisGrupo {
+  produtoId String @map("produto_id") @db.Uuid
+  grupoId   String @map("grupo_id") @db.Uuid
+  empresaId String @map("empresa_id") @db.Uuid
+
+  produto Produto         @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  grupo   AdicionaisGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  empresa Empresa         @relation(fields: [empresaId], references: [id])
+
+  @@id([produtoId, grupoId])
+  @@map("produto_adicionais_grupos")
+}
+
+// ============================================
+// FORMAS DE PAGAMENTO
+// ============================================
+
+model FormaPagamento {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId  String   @map("empresa_id") @db.Uuid
+  nome       String
+  ativo      Boolean  @default(true)
+  exigeTroco Boolean  @default(false) @map("exige_troco")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa                Empresa                 @relation(fields: [empresaId], references: [id])
+  pedidos                Pedido[]
+  contaPagamentos        ContaPagamento[]
+  caixaRecebimentos      CaixaRecebimento[]
+  entregadorRecebimentos EntregadorRecebimento[]
+
+  @@index([empresaId])
+  @@map("formas_pagamento")
+}
+
+// ============================================
+// CONFIGURACOES (key-value)
+// ============================================
+
+model Configuracao {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String @map("empresa_id") @db.Uuid
+  chave     String
+  valor     String @default("")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+  @@map("configuracoes")
+}
+
+// ============================================
+// CLIENTES
+// ============================================
+
+model Cliente {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId          String   @map("empresa_id") @db.Uuid
+  telefone           String
+  nome               String
+  pinHash            String?  @map("pin_hash")
+  ultimoCupomPedidos Int      @default(0) @map("ultimo_cupom_pedidos")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  empresa   Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  enderecos ClienteEndereco[]
+  pedidos   Pedido[]
+  cupons    Cupom[]
+
+  @@unique([empresaId, telefone])
+  @@map("clientes")
+}
+
+model ClienteEndereco {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId   String   @map("empresa_id") @db.Uuid
+  clienteId   String   @map("cliente_id") @db.Uuid
+  apelido     String   @default("Casa")
+  rua         String
+  numero      String
+  bairro      String
+  complemento String?
+  referencia  String?
+  padrao      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("cliente_enderecos")
+}
+
+// ============================================
+// MESAS
+// ============================================
+
+model Mesa {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId   String   @map("empresa_id") @db.Uuid
+  numero      Int
+  nome        String
+  ativo       Boolean  @default(true)
+  qrCodeToken String   @unique @default(dbgenerated("encode(gen_random_bytes(8), 'hex')")) @map("qr_code_token")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedidos Pedido[]
+  contas  Conta[]
+
+  @@unique([empresaId, numero])
+  @@map("mesas")
+}
+
+// ============================================
+// PEDIDOS
+// ============================================
+
+model Pedido {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId        String          @map("empresa_id") @db.Uuid
+  numeroSequencial Int             @map("numero_sequencial")
+  clienteNome      String          @map("cliente_nome")
+  clienteTelefone  String?         @map("cliente_telefone")
+  clienteId        String?         @map("cliente_id") @db.Uuid
+  tipo             String          @default("retirada")
+  endereco         Json?
+  subtotal         Decimal         @default(0) @db.Decimal(10, 2)
+  taxaEntrega      Decimal         @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
+  desconto         Decimal         @default(0) @db.Decimal(10, 2)
+  total            Decimal         @default(0) @db.Decimal(10, 2)
+  pedidoStatus     String          @default("novo") @map("pedido_status")
+  pagamentoStatus  PagamentoStatus @default(pendente) @map("pagamento_status")
+  formaPagamentoId String?         @map("forma_pagamento_id") @db.Uuid
+  observacoes      String?
+  mesaId           String?         @map("mesa_id") @db.Uuid
+  garcomUserId     String?         @map("garcom_user_id") @db.Uuid
+  referencia       String?
+  contaId          String?         @map("conta_id") @db.Uuid
+  pagarNaEntrega   Boolean         @default(false) @map("pagar_na_entrega")
+  entregadorId     String?         @map("entregador_id") @db.Uuid
+  cupomId          String?         @map("cupom_id") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa                Empresa                 @relation(fields: [empresaId], references: [id])
+  cliente                Cliente?                @relation(fields: [clienteId], references: [id])
+  formaPagamento         FormaPagamento?         @relation(fields: [formaPagamentoId], references: [id])
+  mesa                   Mesa?                   @relation(fields: [mesaId], references: [id])
+  conta                  Conta?                  @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  entregador             Entregador?             @relation(fields: [entregadorId], references: [id])
+  cupom                  Cupom?                  @relation(fields: [cupomId], references: [id], onDelete: SetNull)
+  itens                  PedidoItem[]
+  caixaRecebimentos      CaixaRecebimento[]
+  entregadorRecebimentos EntregadorRecebimento[]
+
+  @@index([empresaId])
+  @@map("pedidos")
+}
+
+model PedidoItem {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId            String   @map("empresa_id") @db.Uuid
+  pedidoId             String   @map("pedido_id") @db.Uuid
+  produtoId            String?  @map("produto_id") @db.Uuid
+  produtoVarianteId    String?  @map("produto_variante_id") @db.Uuid
+  nomeSnapshot         String   @map("nome_snapshot")
+  varianteNomeSnapshot String?  @map("variante_nome_snapshot")
+  precoUnitSnapshot    Decimal  @default(0) @map("preco_unit_snapshot") @db.Decimal(10, 2)
+  custoUnitSnapshot    Decimal  @default(0) @map("custo_unit_snapshot") @db.Decimal(10, 2)
+  qtd                  Int      @default(1)
+  observacaoItem       String?  @map("observacao_item")
+
+  empresa         Empresa               @relation(fields: [empresaId], references: [id])
+  pedido          Pedido                @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto         Produto?              @relation(fields: [produtoId], references: [id])
+  produtoVariante ProdutoVariante?      @relation(fields: [produtoVarianteId], references: [id])
+  adicionais      PedidoItemAdicional[]
+
+  @@index([empresaId])
+  @@map("pedido_itens")
+}
+
+model PedidoItemAdicional {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String  @map("empresa_id") @db.Uuid
+  pedidoItemId    String  @map("pedido_item_id") @db.Uuid
+  adicionalItemId String? @map("adicional_item_id") @db.Uuid
+  nomeSnapshot    String  @map("nome_snapshot")
+  precoSnapshot   Decimal @default(0) @map("preco_snapshot") @db.Decimal(10, 2)
+  qtd             Int     @default(1)
+
+  empresa       Empresa         @relation(fields: [empresaId], references: [id])
+  pedidoItem    PedidoItem      @relation(fields: [pedidoItemId], references: [id], onDelete: Cascade)
+  adicionalItem AdicionaisItem? @relation(fields: [adicionalItemId], references: [id])
+
+  @@index([empresaId])
+  @@map("pedido_item_adicionais")
+}
+
+// ============================================
+// CONTAS (mesa/comanda)
+// ============================================
+
+model Conta {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId  String    @map("empresa_id") @db.Uuid
+  mesaId     String?   @map("mesa_id") @db.Uuid
+  tipo       String
+  referencia String?
+  status     String    @default("aberta")
+  total      Decimal   @default(0) @db.Decimal(10, 2)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  fechadaEm  DateTime? @map("fechada_em") @db.Timestamptz
+
+  empresa           Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  mesa              Mesa?              @relation(fields: [mesaId], references: [id], onDelete: SetNull)
+  pedidos           Pedido[]
+  pagamentos        ContaPagamento[]
+  caixaRecebimentos CaixaRecebimento[]
+
+  @@map("contas")
+}
+
+model ContaPagamento {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId        String   @map("empresa_id") @db.Uuid
+  contaId          String   @map("conta_id") @db.Uuid
+  formaPagamentoId String?  @map("forma_pagamento_id") @db.Uuid
+  valor            Decimal  @db.Decimal(10, 2)
+  pessoaLabel      String?  @map("pessoa_label")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa        Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  conta          Conta           @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  formaPagamento FormaPagamento? @relation(fields: [formaPagamentoId], references: [id], onDelete: SetNull)
+
+  @@map("conta_pagamentos")
+}
+
+// ============================================
+// CAIXA
+// ============================================
+
+model CaixaSessao {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String    @map("empresa_id") @db.Uuid
+  abertoEm        DateTime  @default(now()) @map("aberto_em") @db.Timestamptz
+  fechadoEm       DateTime? @map("fechado_em") @db.Timestamptz
+  valorAbertura   Decimal   @default(0) @map("valor_abertura") @db.Decimal(10, 2)
+  valorFechamento Decimal?  @map("valor_fechamento") @db.Decimal(10, 2)
+  status          String    @default("aberto")
+  observacoes     String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa          Empresa            @relation(fields: [empresaId], references: [id])
+  recebimentos     CaixaRecebimento[]
+  motoboyAcertos   MotoboyAcerto[]
+  entregadorCaixas EntregadorCaixa[]
+
+  @@map("caixa_sessoes")
+}
+
+model CaixaRecebimento {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId        String   @map("empresa_id") @db.Uuid
+  caixaSessaoId    String?  @map("caixa_sessao_id") @db.Uuid
+  pedidoId         String?  @map("pedido_id") @db.Uuid
+  contaId          String?  @map("conta_id") @db.Uuid
+  formaPagamentoId String?  @map("forma_pagamento_id") @db.Uuid
+  valor            Decimal  @default(0) @db.Decimal(10, 2)
+  tipoOrigem       String   @default("pedido") @map("tipo_origem")
+  motoboyUserId    String?  @map("motoboy_user_id") @db.Uuid
+  acertado         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa        Empresa         @relation(fields: [empresaId], references: [id])
+  caixaSessao    CaixaSessao?    @relation(fields: [caixaSessaoId], references: [id])
+  pedido         Pedido?         @relation(fields: [pedidoId], references: [id])
+  conta          Conta?          @relation(fields: [contaId], references: [id])
+  formaPagamento FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
+
+  @@map("caixa_recebimentos")
+}
+
+model MotoboyAcerto {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId      String   @map("empresa_id") @db.Uuid
+  caixaSessaoId  String?  @map("caixa_sessao_id") @db.Uuid
+  motoboyUserId  String   @map("motoboy_user_id") @db.Uuid
+  totalColetado  Decimal  @default(0) @map("total_coletado") @db.Decimal(10, 2)
+  totalDevolvido Decimal  @default(0) @map("total_devolvido") @db.Decimal(10, 2)
+  diferenca      Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa     Empresa      @relation(fields: [empresaId], references: [id])
+  caixaSessao CaixaSessao? @relation(fields: [caixaSessaoId], references: [id])
+
+  @@map("motoboy_acertos")
+}
+
+// ============================================
+// ENTREGADORES
+// ============================================
+
+model Entregador {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String   @map("empresa_id") @db.Uuid
+  nome      String
+  telefone  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedidos Pedido[]
+  caixas  EntregadorCaixa[]
+
+  @@map("entregadores")
+}
+
+model EntregadorCaixa {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId     String    @map("empresa_id") @db.Uuid
+  entregadorId  String    @map("entregador_id") @db.Uuid
+  caixaSessaoId String?   @map("caixa_sessao_id") @db.Uuid
+  suprimento    Decimal   @default(0) @db.Decimal(10, 2)
+  status        String    @default("aberto")
+  abertoEm      DateTime  @default(now()) @map("aberto_em") @db.Timestamptz
+  fechadoEm     DateTime? @map("fechado_em") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa      Empresa                 @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  entregador   Entregador              @relation(fields: [entregadorId], references: [id], onDelete: Cascade)
+  caixaSessao  CaixaSessao?            @relation(fields: [caixaSessaoId], references: [id])
+  recebimentos EntregadorRecebimento[]
+
+  @@map("entregador_caixa")
+}
+
+model EntregadorRecebimento {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId         String   @map("empresa_id") @db.Uuid
+  entregadorCaixaId String   @map("entregador_caixa_id") @db.Uuid
+  pedidoId          String?  @map("pedido_id") @db.Uuid
+  formaPagamentoId  String?  @map("forma_pagamento_id") @db.Uuid
+  valor             Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa         Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  entregadorCaixa EntregadorCaixa @relation(fields: [entregadorCaixaId], references: [id], onDelete: Cascade)
+  pedido          Pedido?         @relation(fields: [pedidoId], references: [id])
+  formaPagamento  FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
+
+  @@map("entregador_recebimentos")
+}
+
+// ============================================
+// PEDIDO CONFIG (dynamic types & statuses)
+// ============================================
+
+model PedidoTipoConfig {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String  @map("empresa_id") @db.Uuid
+  tipoKey   String  @map("tipo_key")
+  label     String
+  ativo     Boolean @default(true)
+  ordem     Int     @default(0)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, tipoKey])
+  @@map("pedido_tipos_config")
+}
+
+model PedidoStatusConfig {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String   @map("empresa_id") @db.Uuid
+  statusKey       String   @map("status_key")
+  label           String
+  cor             String   @default("blue")
+  ativo           Boolean  @default(true)
+  ordem           Int      @default(0)
+  tiposAplicaveis String[] @default(["retirada", "entrega", "mesa"]) @map("tipos_aplicaveis")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, statusKey])
+  @@map("pedido_status_config")
+}
+
+// ============================================
+// FIDELIDADE & CUPONS
+// ============================================
+
+model FidelidadeRegra {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String   @map("empresa_id") @db.Uuid
+  nome            String
+  tipoRecompensa  String   @default("percentual") @map("tipo_recompensa")
+  valorRecompensa Decimal  @default(0) @map("valor_recompensa") @db.Decimal(10, 2)
+  metaPedidos     Int      @default(10) @map("meta_pedidos")
+  metaValor       Decimal? @map("meta_valor") @db.Decimal(10, 2)
+  validadeDias    Int      @default(30) @map("validade_dias")
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cupons  Cupom[]
+
+  @@map("fidelidade_regras")
+}
+
+model Cupom {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId     String    @map("empresa_id") @db.Uuid
+  regraId       String?   @map("regra_id") @db.Uuid
+  clienteId     String?   @map("cliente_id") @db.Uuid
+  codigo        String
+  tipoDesconto  String    @default("percentual") @map("tipo_desconto")
+  valorDesconto Decimal   @default(0) @map("valor_desconto") @db.Decimal(10, 2)
+  valorMinimo   Decimal   @default(0) @map("valor_minimo") @db.Decimal(10, 2)
+  usoMaximo     Int       @default(1) @map("uso_maximo")
+  usoAtual      Int       @default(0) @map("uso_atual")
+  validoAte     DateTime? @map("valido_ate") @db.Timestamptz
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  regra   FidelidadeRegra? @relation(fields: [regraId], references: [id], onDelete: SetNull)
+  cliente Cliente?         @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  pedidos Pedido[]
+
+  @@unique([empresaId, codigo])
+  @@map("cupons")
+}
+
+// ============================================
+// PERFIL PERMISSOES
+// ============================================
+
+model PerfilPermissao {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId String  @map("empresa_id") @db.Uuid
+  role      AppRole
+  telaKey   String  @map("tela_key")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, role, telaKey])
+  @@map("perfil_permissoes")
+}

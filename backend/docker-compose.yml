@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: fluodelivery
+      POSTGRES_USER: fluodelivery
+      POSTGRES_PASSWORD: fluodelivery
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://fluodelivery:fluodelivery@postgres:5432/fluodelivery?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      STORAGE_DRIVER: local
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  pgdata:
+  uploads:
