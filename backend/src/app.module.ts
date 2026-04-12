@@ -24,6 +24,8 @@ import { CategoriasModule } from './categorias/categorias.module';
 import { ProdutosModule } from './produtos/produtos.module';
 import { AdicionaisModule } from './adicionais/adicionais.module';
 import { PedidosModule } from './pedidos/pedidos.module';
+import { ContasModule } from './contas/contas.module';
+import { CaixaModule } from './caixa/caixa.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { PedidosModule } from './pedidos/pedidos.module';
     CuponsModule,
     PerfilPermissoesModule,
     PedidosModule,
+    ContasModule,
+    CaixaModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
