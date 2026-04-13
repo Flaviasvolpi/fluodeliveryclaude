@@ -28,7 +28,7 @@ export default function Index() {
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresaId}/configuracoes`);
       const banner = data.find((c: any) => c.chave === "banner_url");
-      return banner?.valor || empresa.bannerUrl || "";
+      return banner?.valor || empresa.banner_url || "";
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -36,7 +36,7 @@ export default function Index() {
   const { data: categorias } = useQuery({
     queryKey: ["categorias", empresaId],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/categorias`);
+      const { data } = await api.get(`/empresas/${empresaId}/categorias/active`);
       return data;
     },
   });
@@ -46,7 +46,7 @@ export default function Index() {
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (search) params.search = search;
-      const { data } = await api.get(`/empresas/${empresaId}/produtos`, { params });
+      const { data } = await api.get(`/empresas/${empresaId}/produtos/active`, { params });
       return data;
     },
   });
@@ -166,7 +166,7 @@ export default function Index() {
         )}
       </div>
       {selectedProduct && (
-        <ProductDialog produto={selectedProduct as Produto & { produto_variantes?: ProdutoVariante[] }} open={!!selectedProduct} onClose={() => setSelectedProduct(null)} />
+        <ProductDialog produto={selectedProduct as any} open={!!selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
     </PublicLayout>
   );

@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { FormasPagamentoService } from './formas-pagamento.service';
 import { CreateFormaPagamentoDto, UpdateFormaPagamentoDto } from './dto/formas-pagamento.dto';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 
 @Controller('empresas/:empresaId/formas-pagamento')
 export class FormasPagamentoController {
   constructor(private service: FormasPagamentoService) {}
 
+  @Public()
   @Get()
   findAll(@Param('empresaId') empresaId: string) {
     return this.service.findAll(empresaId);

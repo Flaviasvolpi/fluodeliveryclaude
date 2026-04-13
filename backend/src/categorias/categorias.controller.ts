@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CategoriasService } from './categorias.service';
 import { CreateCategoriaDto, UpdateCategoriaDto } from './dto/create-categoria.dto';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 
 @Controller('empresas/:empresaId/categorias')
 export class CategoriasController {
@@ -10,6 +10,12 @@ export class CategoriasController {
   @Get()
   findAll(@Param('empresaId') empresaId: string) {
     return this.service.findAll(empresaId);
+  }
+
+  @Public()
+  @Get('active')
+  findAllActive(@Param('empresaId') empresaId: string) {
+    return this.service.findAllActive(empresaId);
   }
 
   @Post()

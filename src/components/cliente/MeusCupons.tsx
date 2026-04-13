@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cliente-auth`;
+const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/v1/cliente-auth`;
 
 interface Cupom {
   id: string;

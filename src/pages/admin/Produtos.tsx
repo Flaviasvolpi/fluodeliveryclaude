@@ -75,22 +75,12 @@ export default function Produtos() {
         imagem_url = uploadResult?.url || path;
       }
 
-      const payload = { ...values, imagem_url, empresa_id: empresaId };
+      const payload = { ...values, imagem_url, empresa_id: empresaId, grupo_ids: grupoIds };
 
-      let produtoId: string;
       if (values.id) {
         await api.patch(`/empresas/${empresaId}/produtos/${values.id}`, payload);
-        produtoId = values.id;
       } else {
-        const { data } = await api.post(`/empresas/${empresaId}/produtos`, payload);
-        produtoId = data.id;
-      }
-
-      // Sync adicionais groups
-      await api.delete(`/empresas/${empresaId}/produto-adicionais-grupos`);
-      if (grupoIds.length > 0) {
-        await api.post(`/empresas/${empresaId}/produto-adicionais-grupos`, grupoIds.map((grupo_id) => ({ produto_id: produtoId, grupo_id, empresa_id: empresaId }))
-        );
+        await api.post(`/empresas/${empresaId}/produtos`, payload);
       }
     },
     onSuccess: () => {
@@ -364,10 +354,10 @@ export default function Produtos() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{p.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.categorias?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.categoria?.nome ?? "—"}</TableCell>
                   <TableCell>
                     {p.possui_variantes
-                      ? `${p.produto_variantes?.length ?? 0} var.`
+                      ? `${p.variantes?.length ?? 0} var.`
                       : p.preco_base ? formatBRL(p.preco_base) : "—"}
                   </TableCell>
                   <TableCell>
@@ -491,16 +481,10 @@ function ProdutoForm({
   const [imageFile, setImageFile] = useState<File | undefined>();
   const [selectedGrupos, setSelectedGrupos] = useState<string[]>([]);
 
-  useQuery({
-    queryKey: ["produto-grupos", initial?.id],
-    queryFn: async () => {
-      if (!initial?.id) return [];
-      const { data } = await api.get(`/empresas/${empresaId}/produto-adicionais-grupos`);
-      const ids = (data ?? []).map((d) => d.grupo_id);
-      setSelectedGrupos(ids);
-      return ids;
-    },
-    enabled: !!initial?.id,
+  useState(() => {
+    if (initial?.adicionais_grupos?.length) {
+      setSelectedGrupos(initial.adicionais_grupos.map((ag: any) => ag.grupo_id));
+    }
   });
 
   return (

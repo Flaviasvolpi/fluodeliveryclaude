@@ -196,7 +196,7 @@ export default function Fidelidade() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Recompensa</p>
-                    <p className="font-medium">{r.tipo_recompensa === "percentual" ? `${r.valor_recompensa}%` : `R$ ${r.valor_recompensa.toFixed(2)}`}</p>
+                    <p className="font-medium">{r.tipo_recompensa === "percentual" ? `${r.valor_recompensa}%` : `R$ ${Number(r.valor_recompensa).toFixed(2)}`}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Meta</p>
@@ -209,7 +209,7 @@ export default function Fidelidade() {
                   {r.meta_valor && (
                     <div>
                       <p className="text-muted-foreground">Valor mínimo</p>
-                      <p className="font-medium">R$ {r.meta_valor.toFixed(2)}</p>
+                      <p className="font-medium">R$ {Number(r.meta_valor).toFixed(2)}</p>
                     </div>
                   )}
                 </div>

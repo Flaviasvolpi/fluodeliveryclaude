@@ -17,4 +17,10 @@ export class PerfilPermissoesService {
   delete(id: string, empresaId: string) {
     return this.prisma.perfilPermissao.delete({ where: { id, empresaId } });
   }
+
+  deleteByRole(empresaId: string, role: string) {
+    return this.prisma.perfilPermissao.deleteMany({
+      where: { empresaId, role: role as any },
+    });
+  }
 }

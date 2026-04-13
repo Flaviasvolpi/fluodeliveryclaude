@@ -6,12 +6,13 @@ import {
   UpdatePedidoStatusDto,
   QueryPedidosDto,
 } from './dto/pedidos.dto';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 
 @Controller('empresas/:empresaId/pedidos')
 export class PedidosController {
   constructor(private service: PedidosService) {}
 
+  @Public()
   @Post()
   async create(
     @Param('empresaId') empresaId: string,

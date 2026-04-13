@@ -37,7 +37,7 @@ export default function Configuracoes() {
   const { data: empresa } = useQuery({
     queryKey: ["empresa-dados", empresaId],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/empresas`);
+      const { data } = await api.get(`/empresas/${empresaId}`);
       return data;
     },
   });
@@ -81,17 +81,13 @@ export default function Configuracoes() {
   }, [configs]);
 
   async function upsertConfig(chave: string, valor: string) {
-    const { data } = await api.get(`/empresas/${empresaId}/configuracoes`);
-    if (!data || data.length === 0) {
-      await api.get(`/empresas/${empresaId}/configuracoes`);
-      
-    }
+    await api.post(`/empresas/${empresaId}/configuracoes`, { chave, valor });
   }
 
   const salvarDadosEmpresa = useMutation({
     mutationFn: async () => {
       // Update empresas table
-      await api.get(`/empresas/${empresaId}/empresas`);
+      await api.patch(`/empresas/${empresaId}`, { nome: empresaNome, telefone: empresaTelefone });
       // Save extra fields in configuracoes
       await upsertConfig("site", empresaSite);
       await upsertConfig("instagram", empresaInstagram);

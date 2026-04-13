@@ -36,14 +36,11 @@ export class RolesGuard implements CanActivate {
     const empresaId =
       request.params?.empresaId || request.body?.empresaId;
 
-    if (!empresaId) {
-      throw new ForbiddenException('empresa_id não informado');
-    }
-
+    // If no empresaId in path/body, check if user has the required role in any empresa
     const roles = await this.prisma.userRole.findMany({
       where: {
         userId: user.sub,
-        empresaId,
+        ...(empresaId ? { empresaId } : {}),
         role: { in: requiredRoles },
       },
     });

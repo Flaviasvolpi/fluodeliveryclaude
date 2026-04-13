@@ -45,12 +45,12 @@ export function useStatusConfig(empresaId: string) {
       const { data } = await api.get(`/empresas/${empresaId}/pedido-status-config`);
       if (!data || data.length === 0) return DEFAULT_STATUS_CONFIG;
       return data.map((d: any) => ({
-        status_key: d.statusKey ?? d.status_key,
+        status_key: d.status_key,
         label: d.label,
         cor: d.cor,
         ativo: d.ativo,
         ordem: d.ordem,
-        tipos_aplicaveis: d.tiposAplicaveis ?? d.tipos_aplicaveis ?? ALL_TIPOS,
+        tipos_aplicaveis: d.tipos_aplicaveis ?? ALL_TIPOS,
       }));
     },
     enabled: !!empresaId,

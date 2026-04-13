@@ -10,6 +10,7 @@ export class ProdutosService {
     return this.prisma.produto.findMany({
       where: { empresaId },
       include: {
+        categoria: { select: { id: true, nome: true } },
         variantes: { orderBy: { ordem: 'asc' } },
         ingredientes: { orderBy: { ordem: 'asc' } },
         adicionaisGrupos: { include: { grupo: { include: { itens: true } } } },

@@ -25,7 +25,7 @@ export function useAuth() {
       setUser({
         id: data.id,
         email: data.email,
-        fullName: data.fullName,
+        fullName: data.full_name,
         roles: data.roles,
       });
     } catch {
@@ -44,8 +44,8 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     try {
       const { data } = await api.post("/auth/login", { email, password });
-      localStorage.setItem("access_token", data.accessToken);
-      localStorage.setItem("refresh_token", data.refreshToken);
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
       await loadUser();
       return { error: null };
     } catch (err: any) {

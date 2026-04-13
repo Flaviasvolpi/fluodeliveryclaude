@@ -24,4 +24,24 @@ export class PedidoStatusConfigService {
   delete(id: string, empresaId: string) {
     return this.prisma.pedidoStatusConfig.delete({ where: { id, empresaId } });
   }
+
+  async bulkUpsert(empresaId: string, rows: any[]) {
+    await this.prisma.pedidoStatusConfig.deleteMany({ where: { empresaId } });
+    const created = [];
+    for (const row of rows) {
+      const item = await this.prisma.pedidoStatusConfig.create({
+        data: {
+          empresaId,
+          statusKey: row.statusKey,
+          label: row.label,
+          cor: row.cor ?? 'blue',
+          ativo: row.ativo ?? true,
+          ordem: row.ordem ?? 0,
+          tiposAplicaveis: row.tiposAplicaveis ?? ['retirada', 'entrega', 'mesa'],
+        },
+      });
+      created.push(item);
+    }
+    return created;
+  }
 }

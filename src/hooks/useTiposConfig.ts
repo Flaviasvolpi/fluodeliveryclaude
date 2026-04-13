@@ -29,16 +29,16 @@ export function useTiposConfig(empresaId: string) {
       if (!data || data.length === 0) return DEFAULT_TIPOS;
       return data.map((d: any) => ({
         id: d.id,
-        tipo_key: d.tipoKey ?? d.tipo_key,
+        tipo_key: d.tipo_key,
         label: d.label,
         ativo: d.ativo,
         ordem: d.ordem,
         origem: d.origem ?? "online",
-        exige_endereco: d.exigeEndereco ?? d.exige_endereco ?? false,
-        exige_mesa: d.exigeMesa ?? d.exige_mesa ?? false,
-        exige_referencia: d.exigeReferencia ?? d.exige_referencia ?? false,
-        referencia_auto: d.referenciaAuto ?? d.referencia_auto ?? false,
-        referencia_label: d.referenciaLabel ?? d.referencia_label ?? "",
+        exige_endereco: d.exige_endereco ?? false,
+        exige_mesa: d.exige_mesa ?? false,
+        exige_referencia: d.exige_referencia ?? false,
+        referencia_auto: d.referencia_auto ?? false,
+        referencia_label: d.referencia_label ?? "",
       }));
     },
     enabled: !!empresaId,

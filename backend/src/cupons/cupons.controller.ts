@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CuponsService } from './cupons.service';
 import { CreateCupomDto, UpdateCupomDto } from './dto/cupons.dto';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 
 @Controller('empresas/:empresaId/cupons')
 export class CuponsController {
   constructor(private service: CuponsService) {}
 
+  @Public()
   @Get()
   findAll(@Param('empresaId') empresaId: string) {
     return this.service.findAll(empresaId);

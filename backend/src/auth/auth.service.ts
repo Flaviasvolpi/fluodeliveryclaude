@@ -102,6 +102,47 @@ export class AuthService {
     return user;
   }
 
+  async getUserRoles(userId: string) {
+    const roles = await this.prisma.userRole.findMany({
+      where: { userId },
+      select: {
+        role: true,
+        empresaId: true,
+      },
+    });
+
+    return roles.map((r) => ({
+      role: r.role,
+      empresaId: r.empresaId,
+    }));
+  }
+
+  async getUserEmpresas(userId: string) {
+    const roles = await this.prisma.userRole.findMany({
+      where: { userId },
+      select: {
+        empresa: {
+          select: { id: true, nome: true, slug: true, logoUrl: true },
+        },
+      },
+    });
+
+    const seen = new Set<string>();
+    const empresas: any[] = [];
+    for (const r of roles) {
+      if (!seen.has(r.empresa.id)) {
+        seen.add(r.empresa.id);
+        empresas.push({
+          id: r.empresa.id,
+          nome: r.empresa.nome,
+          slug: r.empresa.slug,
+          logoUrl: r.empresa.logoUrl,
+        });
+      }
+    }
+    return empresas;
+  }
+
   private generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
 

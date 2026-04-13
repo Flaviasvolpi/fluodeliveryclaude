@@ -24,4 +24,29 @@ export class PedidoTiposConfigService {
   delete(id: string, empresaId: string) {
     return this.prisma.pedidoTipoConfig.delete({ where: { id, empresaId } });
   }
+
+  async bulkUpsert(empresaId: string, rows: any[]) {
+    // Delete existing tipos for this empresa, then recreate
+    await this.prisma.pedidoTipoConfig.deleteMany({ where: { empresaId } });
+    const created = [];
+    for (const row of rows) {
+      const item = await this.prisma.pedidoTipoConfig.create({
+        data: {
+          empresaId,
+          tipoKey: row.tipoKey,
+          label: row.label,
+          ativo: row.ativo ?? true,
+          ordem: row.ordem ?? 0,
+          origem: row.origem,
+          exigeEndereco: row.exigeEndereco,
+          exigeMesa: row.exigeMesa,
+          exigeReferencia: row.exigeReferencia,
+          referenciaAuto: row.referenciaAuto,
+          referenciaLabel: row.referenciaLabel,
+        },
+      });
+      created.push(item);
+    }
+    return created;
+  }
 }

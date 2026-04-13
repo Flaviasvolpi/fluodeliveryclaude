@@ -54,7 +54,12 @@ export default function GestaoEntregas() {
   const despachar = useMutation({
     mutationFn: async () => {
       const ids = Array.from(selected);
-      await api.get(`/empresas/${empresaId}/pedidos`);
+      for (const id of ids) {
+        await api.patch(`/empresas/${empresaId}/pedidos/${id}`, {
+          entregador_id: entregadorId,
+          pedido_status: "saiu_entrega",
+        });
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["gestao-entregas", empresaId] });

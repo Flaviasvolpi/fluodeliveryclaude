@@ -6,9 +6,9 @@ import type { AppRole } from "@/types/database";
 
 export interface PerfilPermissao {
   id: string;
-  empresaId: string;
+  empresa_id: string;
   role: AppRole;
-  telaKey: string;
+  tela_key: string;
 }
 
 export function usePerfilPermissoes() {
@@ -25,7 +25,7 @@ export function usePerfilPermissoes() {
   const permissoesPorRole: Record<string, string[]> = {};
   for (const p of query.data ?? []) {
     if (!permissoesPorRole[p.role]) permissoesPorRole[p.role] = [];
-    permissoesPorRole[p.role].push(p.telaKey);
+    permissoesPorRole[p.role].push(p.tela_key);
   }
 
   return { ...query, permissoesPorRole };

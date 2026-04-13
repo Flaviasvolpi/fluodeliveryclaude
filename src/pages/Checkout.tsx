@@ -26,7 +26,7 @@ import { CheckCircle2, MessageCircle, MessageSquare, UtensilsCrossed, UserCircle
 import BotaoVoltarAtendimento from "@/components/BotaoVoltarAtendimento";
 import { useTiposConfig, getOnlineTipos } from "@/hooks/useTiposConfig";
 
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cliente-auth`;
+const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/v1/cliente-auth`;
 
 export default function Checkout() {
   const { items, clearCart } = useCart();
@@ -248,9 +248,9 @@ export default function Checkout() {
     mutationFn: async () => {
       const payload = buildPayload();
       const { data } = await api.post(`/empresas/${empresaId}/pedidos`, payload);
-      return data as number;
+      return data.numero_pedido ?? data;
     },
-    onSuccess: (numero) => {
+    onSuccess: (numero: any) => {
       setPedidoNumero(numero);
       clearCart();
     },

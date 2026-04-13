@@ -10,7 +10,7 @@ import { MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cliente-auth`;
+const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/v1/cliente-auth`;
 
 interface Endereco {
   id?: string;

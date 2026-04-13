@@ -44,9 +44,7 @@ export default function TiposPedido() {
         referencia_auto: t.referencia_auto,
         referencia_label: t.referencia_label,
       }));
-      for (const row of rows) {
-        await api.get(`/empresas/${empresaId}/pedido-tipos-config`);
-      }
+      await api.put(`/empresas/${empresaId}/pedido-tipos-config/bulk`, rows);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedido-tipos-config", empresaId] });

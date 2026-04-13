@@ -28,7 +28,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
     staleTime: 5 * 60 * 1000,
   });
 
-  const logoUrl = configs?.logo_url || empresa.logoUrl || "";
+  const logoUrl = configs?.logo_url || empresa.logo_url || "";
   const temaConfig = configs?.tema_cardapio || "dark";
   const tempoEspera = configs?.tempo_espera || "";
 

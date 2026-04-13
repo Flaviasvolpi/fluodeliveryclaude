@@ -18,6 +18,12 @@ export class PerfilPermissoesController {
     return this.service.create(empresaId, dto);
   }
 
+  @Delete('by-role/:role')
+  @Roles('admin')
+  deleteByRole(@Param('empresaId') empresaId: string, @Param('role') role: string) {
+    return this.service.deleteByRole(empresaId, role);
+  }
+
   @Delete(':id')
   @Roles('admin')
   delete(@Param('empresaId') empresaId: string, @Param('id') id: string) {

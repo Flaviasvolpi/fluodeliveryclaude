@@ -600,12 +600,18 @@ model EntregadorRecebimento {
 // ============================================
 
 model PedidoTipoConfig {
-  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  empresaId String  @map("empresa_id") @db.Uuid
-  tipoKey   String  @map("tipo_key")
-  label     String
-  ativo     Boolean @default(true)
-  ordem     Int     @default(0)
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String  @map("empresa_id") @db.Uuid
+  tipoKey         String  @map("tipo_key")
+  label           String
+  ativo           Boolean @default(true)
+  ordem           Int     @default(0)
+  origem          String? @default("interno")
+  exigeEndereco   Boolean @default(false) @map("exige_endereco")
+  exigeMesa       Boolean @default(false) @map("exige_mesa")
+  exigeReferencia Boolean @default(false) @map("exige_referencia")
+  referenciaAuto  Boolean @default(false) @map("referencia_auto")
+  referenciaLabel String? @map("referencia_label")
 
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 

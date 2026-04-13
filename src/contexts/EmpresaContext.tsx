@@ -9,9 +9,10 @@ interface Empresa {
   nome: string;
   slug: string;
   telefone: string | null;
-  logoUrl: string | null;
-  bannerUrl: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
   ativo: boolean;
+  [key: string]: any;
 }
 
 interface EmpresaContextData {

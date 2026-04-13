@@ -30,9 +30,9 @@ api.interceptors.response.use(
             `${api.defaults.baseURL}/auth/refresh`,
             { refreshToken },
           );
-          localStorage.setItem('access_token', data.accessToken);
-          localStorage.setItem('refresh_token', data.refreshToken);
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
           return api(originalRequest);
         } catch {
           localStorage.removeItem('access_token');

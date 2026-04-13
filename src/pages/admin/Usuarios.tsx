@@ -62,30 +62,6 @@ interface UserData {
   roles: { role_id: string; role: string }[];
 }
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-
-async function callUsersFn(params: {
-  action: string;
-  empresa_id: string;
-  method: string;
-  body?: Record<string, unknown>;
-  user_id?: string;
-}) {
-  const session = { access_token: localStorage.getItem("access_token") };
-  const token = session?.access_token;
-  const qs = new URLSearchParams({ action: params.action, empresa_id: params.empresa_id });
-  if (params.user_id) qs.set("user_id", params.user_id);
-  const url = `https://${PROJECT_ID}.supabase.co/functions/v1/gerenciar-usuarios?${qs}`;
-  const res = await fetch(url, {
-    method: params.method,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: params.body ? JSON.stringify(params.body) : undefined,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Erro ao processar");
-  return data;
-}
-
 function generatePassword(length = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
   let pass = "";
@@ -112,38 +88,43 @@ export default function Usuarios() {
 
   const { data: usuarios = [], isLoading } = useQuery<UserData[]>({
     queryKey: ["usuarios", empresa.id],
-    queryFn: () => callUsersFn({ action: "list", empresa_id: empresa.id, method: "GET" }),
+    queryFn: async () => {
+      const { data } = await api.get(`/empresas/${empresa.id}/usuarios`);
+      return data;
+    },
   });
 
   const addMutation = useMutation({
-    mutationFn: () =>
-      callUsersFn({ action: "add", empresa_id: empresa.id, method: "POST", body: { email, password, nome, roles: selectedRoles } }),
+    mutationFn: async () => {
+      await api.post(`/empresas/${empresa.id}/usuarios/create`, { email, password, nome, roles: selectedRoles });
+    },
     onSuccess: () => { toast.success("Usuário criado!"); qc.invalidateQueries({ queryKey: ["usuarios"] }); setOpenAdd(false); resetForm(); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.response?.data?.message || e.message),
   });
 
   const updateRolesMutation = useMutation({
-    mutationFn: (params: { user_id: string; roles: string[] }) =>
-      callUsersFn({ action: "update-roles", empresa_id: empresa.id, method: "POST", body: { user_id: params.user_id, roles: params.roles } }),
+    mutationFn: async (params: { user_id: string; roles: string[] }) => {
+      await api.post(`/empresas/${empresa.id}/usuarios/update-roles`, { user_id: params.user_id, roles: params.roles });
+    },
     onSuccess: () => { toast.success("Perfis atualizados!"); qc.invalidateQueries({ queryKey: ["usuarios"] }); setOpenEdit(null); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.response?.data?.message || e.message),
   });
 
   const removeMutation = useMutation({
-    mutationFn: (userId: string) =>
-      callUsersFn({ action: "remove", empresa_id: empresa.id, method: "DELETE", user_id: userId }),
+    mutationFn: async (userId: string) => {
+      await api.delete(`/empresas/${empresa.id}/usuarios/${userId}/remove`);
+    },
     onSuccess: () => { toast.success("Usuário removido."); qc.invalidateQueries({ queryKey: ["usuarios"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.response?.data?.message || e.message),
   });
 
   const savePermMutation = useMutation({
     mutationFn: async ({ role, telas }: { role: string; telas: string[] }) => {
-      // Delete existing permissions for this role in this empresa
-      await api.get(`/empresas/${empresa.id}/perfil-permissoes`);
-      // Insert new permissions
-      if (telas.length > 0) {
-        const rows = telas.map((tela_key) => ({ empresa_id: empresa.id, role: role as any, tela_key }));
-        await api.post(`/empresas/${empresa.id}/perfil-permissoes`, rows);
+      // Delete existing permissions for this role, then insert new ones
+      await api.delete(`/empresas/${empresa.id}/perfil-permissoes/by-role/${role}`);
+      // Insert new permissions one by one
+      for (const telaKey of telas) {
+        await api.post(`/empresas/${empresa.id}/perfil-permissoes`, { role, tela_key: telaKey });
       }
     },
     onSuccess: () => {

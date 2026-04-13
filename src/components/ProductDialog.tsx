@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { useState, useMemo } from "react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -16,7 +14,7 @@ import type { Produto, ProdutoVariante, AdicionaisGrupo, AdicionaisItem } from "
 import type { CartItemAdicional } from "@/types/cart";
 
 interface ProductDialogProps {
-  produto: Produto & { produto_variantes?: ProdutoVariante[] };
+  produto: Produto & { variantes?: ProdutoVariante[]; produto_variantes?: ProdutoVariante[]; ingredientes?: any[]; adicionais_grupos?: any[] };
   open: boolean;
   onClose: () => void;
 }
@@ -30,23 +28,18 @@ export default function ProductDialog({ produto, open, onClose }: ProductDialogP
   const [selectedAdicionais, setSelectedAdicionais] = useState<Record<string, CartItemAdicional[]>>({});
   const [removedIngredients, setRemovedIngredients] = useState<string[]>([]);
 
-  const activeVariants = (produto.produto_variantes ?? []).filter((v) => v.ativo);
+  const activeVariants = (produto.variantes ?? produto.produto_variantes ?? []).filter((v: any) => v.ativo);
 
-  const { data: gruposData } = useQuery({
-    queryKey: ["produto-adicionais", produto.id],
-    queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/produtos/${produto.id}/adicionais-grupos`);
-      return (data ?? []) as (AdicionaisGrupo & { adicionais_itens: AdicionaisItem[] })[];
-    },
-  });
+  const gruposData = useMemo(() => {
+    return (produto.adicionais_grupos ?? []).map((ag: any) => ({
+      ...ag.grupo,
+      adicionais_itens: ag.grupo?.itens ?? [],
+    })) as (AdicionaisGrupo & { adicionais_itens: AdicionaisItem[] })[];
+  }, [produto]);
 
-  const { data: ingredientes } = useQuery({
-    queryKey: ["produto-ingredientes", produto.id],
-    queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/produtos/${produto.id}/ingredientes`);
-      return data ?? [];
-    },
-  });
+  const ingredientes = useMemo(() => {
+    return (produto.ingredientes ?? []).filter((i: any) => i.ativo);
+  }, [produto]);
 
   function toggleAdicional(grupoId: string, item: AdicionaisItem, maxSelect: number) {
     setSelectedAdicionais((prev) => {
@@ -66,16 +59,16 @@ export default function ProductDialog({ produto, open, onClose }: ProductDialogP
 
   function getPrice(): number {
     if (produto.possui_variantes && selectedVariant) {
-      return activeVariants.find((v) => v.id === selectedVariant)?.preco_venda ?? 0;
+      return Number(activeVariants.find((v: any) => v.id === selectedVariant)?.preco_venda ?? 0);
     }
-    return produto.preco_base ?? 0;
+    return Number(produto.preco_base ?? 0);
   }
 
   function getCost(): number {
     if (produto.possui_variantes && selectedVariant) {
-      return activeVariants.find((v) => v.id === selectedVariant)?.custo ?? 0;
+      return Number(activeVariants.find((v: any) => v.id === selectedVariant)?.custo ?? 0);
     }
-    return produto.custo_base ?? 0;
+    return Number(produto.custo_base ?? 0);
   }
 
   function canAdd(): boolean {

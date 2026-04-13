@@ -3,7 +3,7 @@ import { ImageIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import type { Produto, ProdutoVariante } from "@/types/database";
 
-type ProductWithVariants = Produto & { produto_variantes?: ProdutoVariante[] };
+type ProductWithVariants = Produto & { variantes?: ProdutoVariante[]; produto_variantes?: ProdutoVariante[] };
 
 interface ProductCardProps {
   product: ProductWithVariants;
@@ -11,10 +11,11 @@ interface ProductCardProps {
 }
 
 export function getDisplayPrice(p: ProductWithVariants): string {
-  if (p.possui_variantes && p.produto_variantes?.length) {
-    const activeVariants = p.produto_variantes.filter((v) => v.ativo);
+  const variants = p.variantes ?? p.produto_variantes ?? [];
+  if (p.possui_variantes && variants.length) {
+    const activeVariants = variants.filter((v) => v.ativo);
     if (activeVariants.length) {
-      const min = Math.min(...activeVariants.map((v) => v.preco_venda));
+      const min = Math.min(...activeVariants.map((v) => Number(v.preco_venda)));
       return `A partir de ${formatBRL(min)}`;
     }
   }

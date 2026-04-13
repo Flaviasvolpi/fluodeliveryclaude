@@ -35,7 +35,7 @@ import { UploadModule } from './upload/upload.module';
   imports: [
     PrismaModule,
     AuthModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
     EmpresasModule,
     CategoriasModule,
     ProdutosModule,

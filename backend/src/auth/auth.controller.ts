@@ -25,4 +25,14 @@ export class AuthController {
   getProfile(@CurrentUser() user: JwtPayload) {
     return this.authService.getProfile(user.sub);
   }
+
+  @Get('me/roles')
+  getRoles(@CurrentUser() user: JwtPayload) {
+    return this.authService.getUserRoles(user.sub);
+  }
+
+  @Get('me/empresas')
+  getEmpresas(@CurrentUser() user: JwtPayload) {
+    return this.authService.getUserEmpresas(user.sub);
+  }
 }
