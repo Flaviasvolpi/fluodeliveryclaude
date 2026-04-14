@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -30,11 +31,13 @@ import { CardapioApiModule } from './cardapio-api/cardapio-api.module';
 import { ClienteAuthModule } from './cliente-auth/cliente-auth.module';
 import { ExternalOrdersModule } from './external-orders/external-orders.module';
 import { UploadModule } from './upload/upload.module';
+import { IfoodModule } from './ifood/ifood.module';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 1000 }]),
     EmpresasModule,
     CategoriasModule,
@@ -58,6 +61,7 @@ import { UploadModule } from './upload/upload.module';
     ClienteAuthModule,
     ExternalOrdersModule,
     UploadModule,
+    IfoodModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

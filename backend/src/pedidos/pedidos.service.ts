@@ -3,13 +3,17 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreatePedidoDto, UpdatePedidoDto, QueryPedidosDto } from './dto/pedidos.dto';
 
 @Injectable()
 export class PedidosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Creates an order using an interactive Prisma transaction.
@@ -322,10 +326,20 @@ export class PedidosService {
   }
 
   async updateStatus(id: string, empresaId: string, pedidoStatus: string) {
-    return this.prisma.pedido.update({
+    const pedido = await this.prisma.pedido.update({
       where: { id, empresaId },
       data: { pedidoStatus },
     });
+
+    // Emit event for iFood status sync
+    this.eventEmitter.emit('pedido.status.changed', {
+      empresaId,
+      pedidoId: pedido.id,
+      ifoodOrderId: pedido.ifoodOrderId,
+      newStatus: pedidoStatus,
+    });
+
+    return pedido;
   }
 
   async update(id: string, empresaId: string, dto: UpdatePedidoDto) {

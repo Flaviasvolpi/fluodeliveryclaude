@@ -100,6 +100,7 @@ function AdminSidebar() {
     { title: "Tipos de Pedido", url: `/admin/${slug}/tipos-pedido`, icon: Tags, telaKey: "tipos-pedido" },
     { title: "Fluxo de Status", url: `/admin/${slug}/fluxo-status`, icon: GitBranch, telaKey: "fluxo-status" },
     { title: "Configurações", url: `/admin/${slug}/configuracoes`, icon: Settings, telaKey: "configuracoes" },
+    { title: "iFood", url: `/admin/${slug}/ifood`, icon: ExternalLink, telaKey: "ifood" },
   ];
 
   const renderItem = (item: MenuItem) => (

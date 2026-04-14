@@ -1,6 +1,6 @@
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ShoppingBag, Truck, DollarSign, Users, Package, Settings, BookOpen } from "lucide-react";
+import { ShoppingBag, Truck, DollarSign, Users, Package, Settings, BookOpen, ExternalLink } from "lucide-react";
 
 interface HelpTopic {
   title: string;
@@ -308,6 +308,118 @@ const helpSections: HelpSection[] = [
           "Edite nome, telefone, site, Instagram e endereço da empresa.",
           "Configure o banner e logo exibidos no cardápio público.",
           "Ajuste preferências como taxa de entrega padrão e outras opções.",
+        ],
+      },
+    ],
+  },
+  {
+    label: "Integração iFood",
+    icon: ExternalLink,
+    topics: [
+      {
+        title: "1. Criar conta no iFood Developer",
+        description: "Primeiro passo: registrar sua empresa na plataforma de desenvolvedores do iFood.",
+        steps: [
+          "Acesse developer.ifood.com.br e crie uma conta Professional (com CNPJ).",
+          "No painel do iFood Developer, crie uma nova Aplicação do tipo 'Centralizado'.",
+          "Anote o Client ID e o Client Secret gerados — você precisará deles no próximo passo.",
+          "O iFood fornecerá um Merchant ID (UUID) para a sua loja. Anote também.",
+          "Se for testar primeiro, use as credenciais do ambiente de Sandbox (teste).",
+        ],
+      },
+      {
+        title: "2. Configurar credenciais no sistema",
+        description: "Inserir as credenciais do iFood no painel administrativo do FluoDelivery.",
+        steps: [
+          "No FluoDelivery, acesse Configurações > iFood.",
+          "Preencha o campo Merchant ID com o UUID da sua loja no iFood.",
+          "Preencha o Client ID e o Client Secret fornecidos pelo iFood Developer.",
+          "Se desejar receber pedidos em tempo real (recomendado para produção), ative o Modo Webhook.",
+          "No modo Webhook, copie a URL exibida e configure-a no Portal de Parceiros do iFood.",
+          "Clique em 'Salvar Credenciais'.",
+        ],
+      },
+      {
+        title: "3. Ativar a integração",
+        description: "Ligar a conexão com o iFood para começar a operar.",
+        steps: [
+          "Na mesma tela de iFood, clique no botão 'Ativar iFood'.",
+          "O sistema criará automaticamente um tipo de pedido 'iFood' no seu fluxo.",
+          "Os status de pedido existentes serão vinculados às ações do iFood (confirmar, preparar, etc.).",
+          "O sistema começará a consultar o iFood a cada 30 segundos buscando novos pedidos.",
+          "Um indicador 'Ativo' aparecerá confirmando que a integração está funcionando.",
+        ],
+      },
+      {
+        title: "4. Configurar horários de funcionamento",
+        description: "Definir os horários em que sua loja estará aberta para receber pedidos.",
+        steps: [
+          "Na tela de iFood, role até a seção 'Horários de Funcionamento'.",
+          "Para cada dia da semana, defina o horário de abertura e fechamento.",
+          "Desative os dias em que a loja não funciona (ex: domingo).",
+          "Clique em 'Salvar Horários'.",
+          "Os horários serão sincronizados com o iFood automaticamente.",
+        ],
+      },
+      {
+        title: "5. Mapear produtos para o iFood",
+        description: "Vincular seus produtos locais ao catálogo do iFood para que os pedidos sejam reconhecidos.",
+        steps: [
+          "Acesse Catálogo > Produtos e edite cada produto que deseja vender no iFood.",
+          "No futuro, o campo 'Código iFood' permitirá vincular o produto ao catálogo do iFood.",
+          "Os adicionais, variantes e ingredientes também podem ser vinculados.",
+          "Mesmo sem vinculação, pedidos do iFood são recebidos com os nomes e preços do iFood.",
+          "Para sincronizar o cardápio completo, use o botão 'Sincronizar Agora' na tela de iFood.",
+          "A sincronização respeita o limite do iFood de um envio a cada 30 minutos.",
+        ],
+      },
+      {
+        title: "6. Mapear status de pedido",
+        description: "Definir qual ação executar no iFood quando você alterar o status de um pedido.",
+        steps: [
+          "Na tela de iFood, veja a seção 'Mapeamento de Status'.",
+          "Cada status local (Confirmado, Em Preparo, Pronto, etc.) pode ter uma ação no iFood.",
+          "As ações disponíveis são: Confirmar pedido, Iniciar preparo, Pronto para retirada e Despachar.",
+          "Os mapeamentos padrão já são criados ao ativar, mas você pode personalizar.",
+          "Exemplo: quando você muda um pedido iFood para 'Pronto', o iFood é notificado automaticamente.",
+          "Clique em 'Salvar Mapeamentos' após ajustar.",
+        ],
+      },
+      {
+        title: "7. Receber e tratar pedidos do iFood",
+        description: "Como os pedidos do iFood chegam e como gerenciá-los no dia a dia.",
+        steps: [
+          "Quando um cliente faz um pedido no iFood, ele aparece automaticamente na tela de Pedidos.",
+          "Pedidos do iFood são identificados com o tipo 'iFood' e um código de exibição do iFood.",
+          "O pedido é confirmado automaticamente no iFood assim que é recebido pelo sistema.",
+          "Gerencie o pedido normalmente: altere o status conforme o preparo avança.",
+          "Cada mudança de status é sincronizada com o iFood (conforme o mapeamento configurado).",
+          "O cliente do iFood é cadastrado automaticamente pelo telefone, entrando no programa de fidelidade.",
+          "Pedidos cancelados no iFood são atualizados automaticamente para 'Cancelado' no sistema.",
+        ],
+      },
+      {
+        title: "8. Acompanhar sincronização",
+        description: "Monitorar se a integração está funcionando corretamente.",
+        steps: [
+          "Na tela de iFood, a seção 'Sincronização de Cardápio' mostra o último envio.",
+          "Um badge verde indica sucesso; vermelho indica erro (com detalhes).",
+          "O badge 'Pendente' aparece quando há mudanças no cardápio ainda não enviadas ao iFood.",
+          "Use o botão 'Sincronizar Agora' para forçar o envio imediato.",
+          "No iFood, você pode verificar o status da loja (aberto/fechado) direto pelo sistema.",
+          "Se a integração parar de funcionar, verifique as credenciais e se o iFood está ativo.",
+        ],
+      },
+      {
+        title: "Resolução de problemas",
+        description: "Soluções para problemas comuns na integração com o iFood.",
+        steps: [
+          "Pedidos não chegam: verifique se a integração está 'Ativa' e se as credenciais estão corretas.",
+          "Erro de autenticação: confira o Client ID e Secret. Gere novas credenciais no iFood Developer se necessário.",
+          "Status não sincroniza: verifique os mapeamentos na seção 'Mapeamento de Status'.",
+          "Cardápio não atualiza: respeite o intervalo de 30 minutos entre sincronizações.",
+          "Para modo Webhook: certifique-se de que o servidor está acessível pela internet (IP público ou domínio).",
+          "Em caso de dúvida, desative e reative a integração para resetar as configurações.",
         ],
       },
     ],

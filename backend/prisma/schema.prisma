@@ -53,9 +53,16 @@ model Empresa {
   telefone  String?
   logoUrl   String?  @map("logo_url")
   bannerUrl String?  @map("banner_url")
-  apiKey    String?  @unique @default(dbgenerated("gen_random_uuid()")) @map("api_key")
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  apiKey            String?  @unique @default(dbgenerated("gen_random_uuid()")) @map("api_key")
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // iFood integration
+  ifoodMerchantId   String?  @map("ifood_merchant_id")
+  ifoodClientId     String?  @map("ifood_client_id")
+  ifoodClientSecret String?  @map("ifood_client_secret")
+  ifoodAtivo        Boolean  @default(false) @map("ifood_ativo")
+  ifoodWebhookMode  Boolean  @default(false) @map("ifood_webhook_mode")
 
   contador                EmpresaContador?
   userRoles               UserRole[]
@@ -87,6 +94,13 @@ model Empresa {
   fidelidadeRegras        FidelidadeRegra[]
   cupons                  Cupom[]
   perfilPermissoes        PerfilPermissao[]
+
+  // iFood relations
+  ifoodToken              IfoodToken?
+  ifoodEventLogs          IfoodEventLog[]
+  ifoodStatusMappings     IfoodStatusMapping[]
+  horarios                HorarioFuncionamento[]
+  ifoodCatalogSync        IfoodCatalogSync?
 
   @@map("empresas")
 }
@@ -123,12 +137,13 @@ model UserRole {
 // ============================================
 
 model Categoria {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  empresaId String   @map("empresa_id") @db.Uuid
-  nome      String
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId       String   @map("empresa_id") @db.Uuid
+  nome            String
+  ordem           Int      @default(0)
+  ativo           Boolean  @default(true)
+  ifoodCategoryId String?  @map("ifood_category_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   empresa  Empresa   @relation(fields: [empresaId], references: [id])
   produtos Produto[]
@@ -153,6 +168,7 @@ model Produto {
   possuiVariantes Boolean  @default(false) @map("possui_variantes")
   custoBase       Decimal? @map("custo_base") @db.Decimal(10, 2)
   precoBase       Decimal? @map("preco_base") @db.Decimal(10, 2)
+  ifoodProductId  String?  @map("ifood_product_id")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   empresa          Empresa                  @relation(fields: [empresaId], references: [id])
@@ -173,10 +189,11 @@ model ProdutoVariante {
   nome       String
   sku        String?
   custo      Decimal  @default(0) @db.Decimal(10, 2)
-  precoVenda Decimal  @default(0) @map("preco_venda") @db.Decimal(10, 2)
-  ativo      Boolean  @default(true)
-  ordem      Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  precoVenda     Decimal  @default(0) @map("preco_venda") @db.Decimal(10, 2)
+  ativo          Boolean  @default(true)
+  ordem          Int      @default(0)
+  ifoodProductId String?  @map("ifood_product_id")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   empresa     Empresa     @relation(fields: [empresaId], references: [id])
   produto     Produto     @relation(fields: [produtoId], references: [id], onDelete: Cascade)
@@ -210,10 +227,11 @@ model AdicionaisGrupo {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   empresaId String   @map("empresa_id") @db.Uuid
   nome      String
-  minSelect Int      @default(0) @map("min_select")
-  maxSelect Int      @default(1) @map("max_select")
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  minSelect    Int      @default(0) @map("min_select")
+  maxSelect    Int      @default(1) @map("max_select")
+  ativo        Boolean  @default(true)
+  ifoodGroupId String?  @map("ifood_group_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   empresa  Empresa                  @relation(fields: [empresaId], references: [id])
   itens    AdicionaisItem[]
@@ -228,9 +246,10 @@ model AdicionaisItem {
   empresaId String   @map("empresa_id") @db.Uuid
   grupoId   String   @map("grupo_id") @db.Uuid
   nome      String
-  preco     Decimal  @default(0) @db.Decimal(10, 2)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  preco         Decimal  @default(0) @db.Decimal(10, 2)
+  ativo         Boolean  @default(true)
+  ifoodOptionId String?  @map("ifood_option_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   empresa              Empresa               @relation(fields: [empresaId], references: [id])
   grupo                AdicionaisGrupo       @relation(fields: [grupoId], references: [id], onDelete: Cascade)
@@ -382,6 +401,8 @@ model Pedido {
   pagarNaEntrega   Boolean         @default(false) @map("pagar_na_entrega")
   entregadorId     String?         @map("entregador_id") @db.Uuid
   cupomId          String?         @map("cupom_id") @db.Uuid
+  ifoodOrderId     String?         @unique @map("ifood_order_id")
+  ifoodDisplayId   String?         @map("ifood_display_id")
   createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz
 
   empresa                Empresa                 @relation(fields: [empresaId], references: [id])
@@ -695,4 +716,79 @@ model PerfilPermissao {
 
   @@unique([empresaId, role, telaKey])
   @@map("perfil_permissoes")
+}
+
+// ============================================
+// IFOOD INTEGRATION
+// ============================================
+
+model IfoodToken {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId   String   @unique @map("empresa_id") @db.Uuid
+  accessToken String   @map("access_token")
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("ifood_tokens")
+}
+
+model IfoodEventLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId    String   @map("empresa_id") @db.Uuid
+  eventId      String   @map("event_id")
+  eventType    String   @map("event_type")
+  ifoodOrderId String   @map("ifood_order_id")
+  payload      Json
+  processedAt  DateTime @default(now()) @map("processed_at") @db.Timestamptz
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, eventId])
+  @@index([empresaId])
+  @@map("ifood_event_log")
+}
+
+model IfoodStatusMapping {
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId      String @map("empresa_id") @db.Uuid
+  localStatusKey String @map("local_status_key")
+  ifoodAction    String @map("ifood_action")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, localStatusKey])
+  @@map("ifood_status_mappings")
+}
+
+model IfoodCatalogSync {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId   String    @unique @map("empresa_id") @db.Uuid
+  lastSyncAt  DateTime? @map("last_sync_at") @db.Timestamptz
+  lastStatus  String?   @map("last_status")
+  lastError   String?   @map("last_error")
+  pendingSync Boolean   @default(false) @map("pending_sync")
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("ifood_catalog_sync")
+}
+
+// ============================================
+// HORARIOS DE FUNCIONAMENTO
+// ============================================
+
+model HorarioFuncionamento {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId  String  @map("empresa_id") @db.Uuid
+  diaSemana  Int     @map("dia_semana") // 0=Domingo ... 6=Sábado
+  horaAbrir  String  @map("hora_abrir") // "09:00"
+  horaFechar String  @map("hora_fechar") // "23:00"
+  ativo      Boolean @default(true)
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, diaSemana])
+  @@map("horarios_funcionamento")
 }
