@@ -113,10 +113,8 @@ export default function CaixaDiario() {
 
   const abrirCaixa = useMutation({
     mutationFn: async () => {
-      await api.post(`/empresas/${empresaId}/caixa/sessoes`, {
-        empresa_id: empresaId,
+      await api.post(`/empresas/${empresaId}/caixa/sessoes/abrir`, {
         valor_abertura: valorAbertura,
-        status: "aberto",
       });
     },
     onSuccess: () => {
@@ -131,9 +129,7 @@ export default function CaixaDiario() {
   const fecharCaixa = useMutation({
     mutationFn: async () => {
       if (!sessao) throw new Error("Nenhuma sessão aberta");
-      await api.patch(`/empresas/${empresaId}/caixa/sessoes/${sessao.id}`, {
-        status: "fechado",
-        fechado_em: new Date().toISOString(),
+      await api.post(`/empresas/${empresaId}/caixa/sessoes/${sessao.id}/fechar`, {
         valor_fechamento: valorFechamento,
         observacoes,
       });

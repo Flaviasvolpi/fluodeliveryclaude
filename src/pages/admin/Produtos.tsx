@@ -95,44 +95,54 @@ export default function Produtos() {
   const duplicar = useMutation({
     mutationFn: async (produto: any) => {
       // 1. Insert new product (copy)
-      const { id, created_at, categorias: _cat, produto_variantes: _vars, ...rest } = produto;
-      const { data: novo } = await api.post(`/empresas/${empresaId}/produtos`, { ...rest, nome: `${rest.nome} (Cópia)`, empresa_id: empresaId });
+      const { id, created_at, categoria, variantes, ingredientes, adicionais_grupos, ...rest } = produto;
+      const { data: novo } = await api.post(`/empresas/${empresaId}/produtos`, {
+        nome: `${rest.nome} (Cópia)`,
+        descricao: rest.descricao,
+        categoria_id: rest.categoria_id,
+        preco_base: rest.preco_base,
+        custo_base: rest.custo_base,
+        possui_variantes: rest.possui_variantes,
+        ordem: rest.ordem,
+      });
       const novoId = novo.id;
 
       // 2. Copy variants
-      if (produto.produto_variantes?.length) {
-        const variants = produto.produto_variantes.map((v: any) => ({
-          produto_id: novoId,
-          empresa_id: empresaId,
-          nome: v.nome,
-          sku: v.sku,
-          custo: v.custo,
-          preco_venda: v.preco_venda,
-          ordem: v.ordem,
-          ativo: v.ativo,
-        }));
-        await api.post(`/empresas/${empresaId}/produto-variantes`, variants);
+      if (variantes?.length) {
+        for (const v of variantes) {
+          await api.post(`/empresas/${empresaId}/produto-variantes`, {
+            produto_id: novoId,
+            nome: v.nome,
+            sku: v.sku,
+            custo: v.custo,
+            preco_venda: v.preco_venda,
+            ordem: v.ordem,
+            ativo: v.ativo,
+          });
+        }
       }
 
       // 3. Copy addons groups
-      const { data: grupos } = await api.get(`/empresas/${empresaId}/produto-adicionais-grupos`);
-      if (grupos?.length) {
-        await api.post(`/empresas/${empresaId}/produto-adicionais-grupos`, grupos.map((g: any) => ({ produto_id: novoId, grupo_id: g.grupo_id, empresa_id: empresaId }))
-        );
+      if (adicionais_grupos?.length) {
+        for (const ag of adicionais_grupos) {
+          await api.post(`/empresas/${empresaId}/produto-adicionais-grupos`, {
+            produto_id: novoId,
+            grupo_id: ag.grupo_id,
+          });
+        }
       }
 
       // 4. Copy ingredients
-      const { data: ings } = await api.get(`/empresas/${empresaId}/produto-ingredientes`);
-      if (ings?.length) {
-        await api.post(`/empresas/${empresaId}/produto-ingredientes`, ings.map((i: any) => ({
+      if (ingredientes?.length) {
+        for (const ing of ingredientes) {
+          await api.post(`/empresas/${empresaId}/produto-ingredientes`, {
             produto_id: novoId,
-            empresa_id: empresaId,
-            nome: i.nome,
-            removivel: i.removivel,
-            ordem: i.ordem,
-            ativo: i.ativo,
-          }))
-        );
+            nome: ing.nome,
+            removivel: ing.removivel,
+            ordem: ing.ordem,
+            ativo: ing.ativo,
+          });
+        }
       }
     },
     onSuccess: () => {

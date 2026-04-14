@@ -160,10 +160,7 @@ export default function FechamentoConta() {
       }
 
       // Close conta
-      await api.patch(`/empresas/${empresaId}/contas/${selectedContaId}`, {
-        status: "fechada",
-        fechada_em: new Date().toISOString(),
-      });
+      await api.post(`/empresas/${empresaId}/contas/${selectedContaId}/fechar`);
 
       // Update pedidos pagamento_status
       const pedidoIds = pedidosConta?.map((p) => p.id) ?? [];

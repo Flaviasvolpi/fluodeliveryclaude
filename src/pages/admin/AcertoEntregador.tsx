@@ -78,8 +78,7 @@ export default function AcertoEntregador() {
   const abrirCaixa = useMutation({
     mutationFn: async () => {
       const valor = parseFloat(suprimentoValor) || 0;
-      await api.post(`/empresas/${empresaId}/caixa/entregador-caixa`, {
-        empresa_id: empresaId,
+      await api.post(`/empresas/${empresaId}/caixa/entregador-caixa/abrir`, {
         entregador_id: entregadorId,
         suprimento: valor,
       });
@@ -97,14 +96,14 @@ export default function AcertoEntregador() {
       const linhasValidas = pagamentos.filter((l) => parseFloat(l.valor) > 0 && l.forma_pagamento_id);
       if (linhasValidas.length === 0) throw new Error("Adicione ao menos um pagamento válido");
 
-      // Insert all payment lines
-      const inserts = linhasValidas.map((l) => ({
-        empresa_id: empresaId,
-        entregador_caixa_id: caixaAberto!.id,
-        forma_pagamento_id: l.forma_pagamento_id,
-        valor: parseFloat(l.valor),
-      }));
-      await api.post(`/empresas/${empresaId}/caixa/entregador-recebimentos`, inserts);
+      // Insert all payment lines one by one
+      for (const l of linhasValidas) {
+        await api.post(`/empresas/${empresaId}/caixa/entregador-recebimentos`, {
+          entregador_caixa_id: caixaAberto!.id,
+          forma_pagamento_id: l.forma_pagamento_id,
+          valor: parseFloat(l.valor),
+        });
+      }
       // Mark selected pedidos as "entregue"
       const ids = Array.from(selectedPedidos);
       for (const id of ids) {
@@ -125,10 +124,7 @@ export default function AcertoEntregador() {
   const fecharCaixa = useMutation({
     mutationFn: async () => {
       // 1. Fechar o caixa do entregador
-      await api.patch(`/empresas/${empresaId}/caixa/entregador-caixa/${caixaAberto!.id}`, {
-        status: "fechado",
-        fechado_em: new Date().toISOString(),
-      });
+      await api.post(`/empresas/${empresaId}/caixa/entregador-caixa/${caixaAberto!.id}/fechar`, {});
       // 2. Buscar sessão de caixa principal aberta
       const { data: sessaoPrincipal } = await api.get(`/empresas/${empresaId}/caixa/sessoes`);
 
@@ -148,16 +144,16 @@ export default function AcertoEntregador() {
       });
       // 5. Inserir caixa_recebimentos para cada recebimento do entregador (vincula ao caixa principal)
       if (caixaSessaoId && recebimentos && recebimentos.length > 0) {
-        const caixaInserts = recebimentos.map((r: any) => ({
-          empresa_id: empresaId,
-          caixa_sessao_id: caixaSessaoId,
-          pedido_id: r.pedido_id ?? null,
-          forma_pagamento_id: r.forma_pagamento_id ?? null,
-          valor: Number(r.valor),
-          tipo_origem: "motoboy",
-          motoboy_user_id: entregadorId,
-        }));
-        await api.post(`/empresas/${empresaId}/caixa/recebimentos`, caixaInserts);
+        for (const r of recebimentos) {
+          await api.post(`/empresas/${empresaId}/caixa/recebimentos`, {
+            caixa_sessao_id: caixaSessaoId,
+            pedido_id: r.pedido_id ?? null,
+            forma_pagamento_id: r.forma_pagamento_id ?? null,
+            valor: Number(r.valor),
+            tipo_origem: "motoboy",
+            motoboy_user_id: entregadorId,
+          });
+        }
       }
     },
     onSuccess: () => {
