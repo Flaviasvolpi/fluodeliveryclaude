@@ -60,7 +60,7 @@ export default function CupomPedido({ pedido, open, onOpenChange }: CupomPedidoP
           <div className="border-b border-dashed border-gray-400 pb-2 mb-2 space-y-0.5">
             <p><strong>Cliente:</strong> {pedido.cliente_nome}</p>
             {pedido.cliente_telefone && <p><strong>Tel:</strong> {pedido.cliente_telefone}</p>}
-            <p><strong>Tipo:</strong> {isMesa ? `MESA — ${pedido.mesas?.nome ?? "Mesa"}` : isEntrega ? "ENTREGA" : "RETIRADA"}</p>
+            <p><strong>Tipo:</strong> {isMesa ? `MESA — ${pedido.mesa?.nome ?? "Mesa"}` : isEntrega ? "ENTREGA" : "RETIRADA"}</p>
             {isEntrega && endereco && (
               <p><strong>End:</strong> {endereco.rua}{endereco.numero ? `, ${endereco.numero}` : ""}{endereco.bairro ? ` - ${endereco.bairro}` : ""}{endereco.complemento ? ` (${endereco.complemento})` : ""}</p>
             )}
@@ -68,7 +68,7 @@ export default function CupomPedido({ pedido, open, onOpenChange }: CupomPedidoP
 
           {/* Items */}
           <div className="border-b border-dashed border-gray-400 pb-2 mb-2 space-y-1">
-            {pedido.pedido_itens?.map((item: any) => (
+            {pedido.itens?.map((item: any) => (
               <div key={item.id}>
                 <div className="flex justify-between">
                   <span>
@@ -80,7 +80,7 @@ export default function CupomPedido({ pedido, open, onOpenChange }: CupomPedidoP
                 {item.observacao_item && (
                   <p className="pl-3 text-[10px] italic">Obs: {item.observacao_item}</p>
                 )}
-                {item.pedido_item_adicionais?.map((ad: any) => (
+                {item.adicionais?.map((ad: any) => (
                   <div key={ad.id} className="flex justify-between pl-3">
                     <span>+ {ad.nome_snapshot}{ad.qtd > 1 ? ` x${ad.qtd}` : ""}</span>
                     <span>{formatBRL(ad.preco_snapshot * ad.qtd)}</span>

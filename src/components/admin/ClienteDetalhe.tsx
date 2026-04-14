@@ -105,7 +105,7 @@ export default function ClienteDetalhe({ cliente, classificacao, onBack }: Props
                       <Badge variant="secondary" className="text-xs">{p.pedido_status}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                      {p.pedido_itens?.map((item: any, idx: number) => (
+                      {p.itens?.map((item: any, idx: number) => (
                         <p key={idx}>
                           {item.qtd}x {item.nome_snapshot}
                           {item.variante_nome_snapshot && ` (${item.variante_nome_snapshot})`}

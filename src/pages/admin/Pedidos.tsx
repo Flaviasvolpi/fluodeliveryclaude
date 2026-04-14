@@ -116,8 +116,8 @@ export default function Pedidos() {
                               <span className="font-bold">#{p.numero_sequencial}</span>
                               <p className="text-sm">{p.cliente_nome}</p>
                               <Badge variant="outline" className="text-xs mt-0.5">{getTipoLabel(p.tipo)}</Badge>
-                              {p.tipo === "mesa" && p.mesas && (
-                                <Badge variant="outline" className="text-xs mt-0.5 ml-1">🍽 {(p.mesas as any).nome}</Badge>
+                              {p.tipo === "mesa" && p.mesa && (
+                                <Badge variant="outline" className="text-xs mt-0.5 ml-1">🍽 {(p.mesa as any).nome}</Badge>
                               )}
                               {p.referencia && (
                                 <Badge variant="outline" className="text-xs mt-0.5 ml-1">#{p.referencia}</Badge>
@@ -126,7 +126,7 @@ export default function Pedidos() {
                             <span className="text-xs text-muted-foreground">{formatTime(p.created_at)}</span>
                           </div>
                           <div className="text-xs text-muted-foreground space-y-0.5">
-                            {p.pedido_itens?.map((item: any) => (
+                            {p.itens?.map((item: any) => (
                               <p key={item.id}>{item.qtd}x {item.nome_snapshot}{item.variante_nome_snapshot && ` (${item.variante_nome_snapshot})`}</p>
                             ))}
                           </div>

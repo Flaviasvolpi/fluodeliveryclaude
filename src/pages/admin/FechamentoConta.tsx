@@ -67,7 +67,7 @@ export default function FechamentoConta() {
   const allItems = useMemo(() => {
     if (!pedidosConta) return [];
     return pedidosConta.flatMap((p) =>
-      (p.pedido_itens || []).map((item: any) => ({
+      (p.itens || []).map((item: any) => ({
         ...item,
         pedido_numero: p.numero_sequencial,
         cliente_nome: p.cliente_nome,
@@ -132,7 +132,7 @@ export default function FechamentoConta() {
         const ids = p.itemIds || [];
         const newIds = ids.includes(itemId) ? ids.filter((id) => id !== itemId) : [...ids, itemId];
         const total = allItems.filter((it) => newIds.includes(it.id)).reduce((sum, it) => {
-          const itemTotal = it.preco_unit_snapshot * it.qtd + (it.pedido_item_adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0);
+          const itemTotal = it.preco_unit_snapshot * it.qtd + (it.adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0);
           return sum + itemTotal;
         }, 0);
         return { ...p, itemIds: newIds, valor: Math.round(total * 100) / 100 };
@@ -223,7 +223,7 @@ export default function FechamentoConta() {
                 <span className="flex items-center gap-2">
                   {selectedConta.tipo === "mesa" ? <UtensilsCrossed className="h-5 w-5" /> : <TicketCheck className="h-5 w-5" />}
                   {selectedConta.tipo === "mesa"
-                    ? `Mesa ${(selectedConta as any).mesas?.numero ?? ""} — ${(selectedConta as any).mesas?.nome ?? ""}`
+                    ? `Mesa ${(selectedConta as any).mesa?.numero ?? ""} — ${(selectedConta as any).mesa?.nome ?? ""}`
                     : `Comanda #${selectedConta.referencia}`}
                 </span>
                 <Badge variant="secondary" className="text-lg">{formatBRL(contaTotal)}</Badge>
@@ -240,7 +240,7 @@ export default function FechamentoConta() {
                       {item.variante_nome_snapshot && ` (${item.variante_nome_snapshot})`}
                     </span>
                     <span className="text-muted-foreground">
-                      {formatBRL(item.preco_unit_snapshot * item.qtd + (item.pedido_item_adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0))}
+                      {formatBRL(item.preco_unit_snapshot * item.qtd + (item.adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0))}
                     </span>
                   </div>
                 ))}
@@ -332,7 +332,7 @@ export default function FechamentoConta() {
                       <div className="space-y-1 max-h-40 overflow-y-auto">
                         {allItems.map((item) => {
                           const assignedElsewhere = !pessoa.itemIds?.includes(item.id) && isItemAssigned(item.id);
-                          const itemTotal = item.preco_unit_snapshot * item.qtd + (item.pedido_item_adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0);
+                          const itemTotal = item.preco_unit_snapshot * item.qtd + (item.adicionais || []).reduce((s: number, a: any) => s + a.preco_snapshot * a.qtd, 0);
                           return (
                             <div key={item.id} className={`flex items-center gap-2 text-sm p-1.5 rounded ${assignedElsewhere ? "opacity-40" : ""}`}>
                               <Checkbox
@@ -417,7 +417,7 @@ export default function FechamentoConta() {
                       {conta.tipo === "mesa" ? <UtensilsCrossed className="h-5 w-5 text-amber-500" /> : <TicketCheck className="h-5 w-5 text-violet-500" />}
                       <span className="font-bold text-lg">
                         {conta.tipo === "mesa"
-                          ? `Mesa ${(conta as any).mesas?.numero ?? "?"}`
+                          ? `Mesa ${(conta as any).mesa?.numero ?? "?"}`
                           : `Comanda #${conta.referencia}`}
                       </span>
                     </div>

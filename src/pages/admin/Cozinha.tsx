@@ -88,18 +88,18 @@ export default function Cozinha() {
                       <div>
                         <span className="text-xl font-bold">#{p.numero_sequencial}</span>
                         <Badge variant="outline" className="ml-2">{getTipoLabel(p.tipo)}</Badge>
-                        {p.tipo === "mesa" && p.mesas && <Badge variant="outline" className="ml-1">🍽 {(p.mesas as any).nome}</Badge>}
+                        {p.tipo === "mesa" && p.mesa && <Badge variant="outline" className="ml-1">🍽 {(p.mesa as any).nome}</Badge>}
                         {p.referencia && <Badge variant="outline" className="ml-1">#{p.referencia}</Badge>}
                       </div>
                       <span className="text-sm text-muted-foreground">{formatTime(p.created_at)}</span>
                     </div>
                     <div className="space-y-1">
-                      {p.pedido_itens?.map((item: any) => (
+                      {p.itens?.map((item: any) => (
                         <div key={item.id} className="text-sm">
                           <span className="font-medium">{item.qtd}x {item.nome_snapshot}</span>
                           {item.variante_nome_snapshot && <span className="text-muted-foreground"> ({item.variante_nome_snapshot})</span>}
-                          {item.pedido_item_adicionais?.length > 0 && (
-                            <p className="text-xs text-muted-foreground pl-4">+ {item.pedido_item_adicionais.map((a: any) => a.nome_snapshot).join(", ")}</p>
+                          {item.adicionais?.length > 0 && (
+                            <p className="text-xs text-muted-foreground pl-4">+ {item.adicionais.map((a: any) => a.nome_snapshot).join(", ")}</p>
                           )}
                           {item.observacao_item && <p className="text-xs italic text-muted-foreground pl-4">Obs: {item.observacao_item}</p>}
                         </div>
@@ -129,7 +129,7 @@ export default function Cozinha() {
                        <div>
                          <span className="text-xl font-bold">#{p.numero_sequencial}</span>
                          <Badge variant="outline" className="ml-2">{getTipoLabel(p.tipo)}</Badge>
-                         {p.tipo === "mesa" && p.mesas && <Badge variant="outline" className="ml-1">🍽 {(p.mesas as any).nome}</Badge>}
+                         {p.tipo === "mesa" && p.mesa && <Badge variant="outline" className="ml-1">🍽 {(p.mesa as any).nome}</Badge>}
                          {p.referencia && <Badge variant="outline" className="ml-1">#{p.referencia}</Badge>}
                        </div>
                        <Badge className={getStatusClasses(preparoConfig?.cor ?? "orange")}>
@@ -137,12 +137,12 @@ export default function Cozinha() {
                        </Badge>
                      </div>
                     <div className="space-y-1">
-                      {p.pedido_itens?.map((item: any) => (
+                      {p.itens?.map((item: any) => (
                         <div key={item.id} className="text-sm">
                           <span className="font-medium">{item.qtd}x {item.nome_snapshot}</span>
                           {item.variante_nome_snapshot && <span className="text-muted-foreground"> ({item.variante_nome_snapshot})</span>}
-                          {item.pedido_item_adicionais?.length > 0 && (
-                            <p className="text-xs text-muted-foreground pl-4">+ {item.pedido_item_adicionais.map((a: any) => a.nome_snapshot).join(", ")}</p>
+                          {item.adicionais?.length > 0 && (
+                            <p className="text-xs text-muted-foreground pl-4">+ {item.adicionais.map((a: any) => a.nome_snapshot).join(", ")}</p>
                           )}
                           {item.observacao_item && <p className="text-xs italic text-muted-foreground pl-4">Obs: {item.observacao_item}</p>}
                         </div>

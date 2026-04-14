@@ -107,8 +107,8 @@ export default function AcertoEntregador() {
       await api.post(`/empresas/${empresaId}/caixa/entregador-recebimentos`, inserts);
       // Mark selected pedidos as "entregue"
       const ids = Array.from(selectedPedidos);
-      if (ids.length > 0) {
-        await api.get(`/empresas/${empresaId}/pedidos`);
+      for (const id of ids) {
+        await api.patch(`/empresas/${empresaId}/pedidos/${id}/status`, { pedido_status: "entregue" });
       }
     },
     onSuccess: () => {

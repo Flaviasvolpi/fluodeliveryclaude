@@ -30,7 +30,7 @@ interface PedidoItem {
   produto_variante_id: string | null;
   variante_nome_snapshot: string | null;
   observacao_item: string | null;
-  pedido_item_adicionais: PedidoItemAdicional[];
+  adicionais: PedidoItemAdicional[];
 }
 
 interface Pedido {
@@ -40,7 +40,7 @@ interface Pedido {
   total: number;
   pedido_status: string;
   tipo: string;
-  pedido_itens: PedidoItem[];
+  itens: PedidoItem[];
 }
 
 export default function MeusPedidos({ clienteId }: { clienteId: string }) {
@@ -71,13 +71,13 @@ export default function MeusPedidos({ clienteId }: { clienteId: string }) {
   }, [clienteId, empresaId]);
 
   const handleRepetir = (pedido: Pedido) => {
-    if (!pedido.pedido_itens || pedido.pedido_itens.length === 0) {
+    if (!pedido.itens || pedido.itens.length === 0) {
       toast.error("Pedido sem itens para repetir");
       return;
     }
 
     let addedCount = 0;
-    for (const item of pedido.pedido_itens) {
+    for (const item of pedido.itens) {
       if (!item.produto_id) continue;
 
       const cartItem: CartItem = {
@@ -90,7 +90,7 @@ export default function MeusPedidos({ clienteId }: { clienteId: string }) {
         custo_unit: item.custo_unit_snapshot || 0,
         qtd: item.qtd,
         observacao: item.observacao_item || undefined,
-        adicionais: (item.pedido_item_adicionais || []).map((a) => ({
+        adicionais: (item.adicionais || []).map((a) => ({
           adicional_item_id: a.adicional_item_id || "",
           nome: a.nome_snapshot,
           preco: a.preco_snapshot,
@@ -133,7 +133,7 @@ export default function MeusPedidos({ clienteId }: { clienteId: string }) {
               {format(new Date(p.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
             </p>
             <ul className="text-sm space-y-0.5 text-muted-foreground mb-3">
-              {p.pedido_itens?.map((item, i) => (
+              {p.itens?.map((item, i) => (
                 <li key={i}>{item.qtd}x {item.nome_snapshot}</li>
               ))}
             </ul>
