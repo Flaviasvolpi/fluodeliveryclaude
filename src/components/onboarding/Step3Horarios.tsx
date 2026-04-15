@@ -15,9 +15,9 @@ const DEFAULTS = DIAS.map((_, i) => ({
   ativo: i !== 0, // Domingo fechado por padrão
 }));
 
-interface Props { empresaId: string; onComplete: () => void; }
+interface Props { empresaId: string; onComplete: () => void; onBack?: () => void; }
 
-export default function Step3Horarios({ empresaId, onComplete }: Props) {
+export default function Step3Horarios({ empresaId, onComplete, onBack }: Props) {
   const [horarios, setHorarios] = useState(DEFAULTS);
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +54,9 @@ export default function Step3Horarios({ empresaId, onComplete }: Props) {
         ))}
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading}>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1">Voltar</Button>
+        <Button type="submit" className="flex-1" size="lg" disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
         Continuar
       </Button>

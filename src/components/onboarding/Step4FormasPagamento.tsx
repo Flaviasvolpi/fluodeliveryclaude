@@ -8,9 +8,9 @@ import { Loader2, Plus } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-interface Props { empresaId: string; onComplete: () => void; }
+interface Props { empresaId: string; onComplete: () => void; onBack?: () => void; }
 
-export default function Step4FormasPagamento({ empresaId, onComplete }: Props) {
+export default function Step4FormasPagamento({ empresaId, onComplete, onBack }: Props) {
   const [novaForma, setNovaForma] = useState("");
   const [exigeTroco, setExigeTroco] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,9 +60,10 @@ export default function Step4FormasPagamento({ empresaId, onComplete }: Props) {
         </div>
       </div>
 
-      <Button className="w-full" size="lg" onClick={onComplete} disabled={loading}>
-        Continuar
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" size="lg" onClick={onBack}>Voltar</Button>
+        <Button className="flex-1" size="lg" onClick={onComplete} disabled={loading}>Continuar</Button>
+      </div>
     </div>
   );
 }

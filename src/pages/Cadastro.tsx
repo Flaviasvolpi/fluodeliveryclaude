@@ -49,6 +49,10 @@ export default function Cadastro() {
     setState((prev) => ({ ...prev, currentStep: stepIndex + 1 }));
   }
 
+  function goBack() {
+    setState((prev) => ({ ...prev, currentStep: Math.max(0, prev.currentStep - 1) }));
+  }
+
   function handleStep1Complete(data: { empresaId: string; empresaSlug: string }) {
     setState((prev) => {
       const completed = new Set(prev.completedSteps);
@@ -83,12 +87,12 @@ export default function Cadastro() {
           <Card className="border shadow-lg">
             <CardContent className="pt-6 pb-6">
               {state.currentStep === 0 && <Step1CriarConta onComplete={handleStep1Complete} />}
-              {state.currentStep === 1 && <Step2DadosEstabelecimento empresaId={empresaId} onComplete={() => completeStep(1)} />}
-              {state.currentStep === 2 && <Step3Horarios empresaId={empresaId} onComplete={() => completeStep(2)} />}
-              {state.currentStep === 3 && <Step4FormasPagamento empresaId={empresaId} onComplete={() => completeStep(3)} />}
-              {state.currentStep === 4 && <Step5TiposPedido empresaId={empresaId} onComplete={() => completeStep(4)} />}
-              {state.currentStep === 5 && <Step6Cardapio empresaId={empresaId} onComplete={() => completeStep(5)} />}
-              {state.currentStep === 6 && <Step7Configuracoes empresaId={empresaId} onComplete={() => completeStep(6)} />}
+              {state.currentStep === 1 && <Step2DadosEstabelecimento empresaId={empresaId} onComplete={() => completeStep(1)} onBack={goBack} />}
+              {state.currentStep === 2 && <Step3Horarios empresaId={empresaId} onComplete={() => completeStep(2)} onBack={goBack} />}
+              {state.currentStep === 3 && <Step4FormasPagamento empresaId={empresaId} onComplete={() => completeStep(3)} onBack={goBack} />}
+              {state.currentStep === 4 && <Step5TiposPedido empresaId={empresaId} onComplete={() => completeStep(4)} onBack={goBack} />}
+              {state.currentStep === 5 && <Step6Cardapio empresaId={empresaId} onComplete={() => completeStep(5)} onBack={goBack} />}
+              {state.currentStep === 6 && <Step7Configuracoes empresaId={empresaId} onComplete={() => completeStep(6)} onBack={goBack} />}
               {state.currentStep === 7 && <Step8Finalizar empresaSlug={empresaSlug} completedSteps={completedSet} />}
             </CardContent>
           </Card>

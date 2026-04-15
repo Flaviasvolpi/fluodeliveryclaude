@@ -14,9 +14,9 @@ const DESCS: Record<string, string> = {
   mesa: "Pedido feito na mesa do estabelecimento",
 };
 
-interface Props { empresaId: string; onComplete: () => void; }
+interface Props { empresaId: string; onComplete: () => void; onBack?: () => void; }
 
-export default function Step5TiposPedido({ empresaId, onComplete }: Props) {
+export default function Step5TiposPedido({ empresaId, onComplete, onBack }: Props) {
   const [localTipos, setLocalTipos] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -69,10 +69,13 @@ export default function Step5TiposPedido({ empresaId, onComplete }: Props) {
 
       <p className="text-xs text-muted-foreground text-center">Você pode alterar isso depois em Configurações &gt; Tipos de Pedido</p>
 
-      <Button className="w-full" size="lg" onClick={handleSave} disabled={loading || items.filter((t: any) => t.ativo).length === 0}>
-        {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-        Continuar
-      </Button>
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" size="lg" onClick={onBack}>Voltar</Button>
+        <Button className="flex-1" size="lg" onClick={handleSave} disabled={loading || items.filter((t: any) => t.ativo).length === 0}>
+          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          Continuar
+        </Button>
+      </div>
     </div>
   );
 }

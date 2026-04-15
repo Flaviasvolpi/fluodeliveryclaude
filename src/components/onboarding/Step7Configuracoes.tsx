@@ -6,9 +6,9 @@ import { Sun, Moon, Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-interface Props { empresaId: string; onComplete: () => void; }
+interface Props { empresaId: string; onComplete: () => void; onBack?: () => void; }
 
-export default function Step7Configuracoes({ empresaId, onComplete }: Props) {
+export default function Step7Configuracoes({ empresaId, onComplete, onBack }: Props) {
   const [taxaEntrega, setTaxaEntrega] = useState("5.00");
   const [tempoEspera, setTempoEspera] = useState("30-45 min");
   const [tema, setTema] = useState("dark");
@@ -59,7 +59,9 @@ export default function Step7Configuracoes({ empresaId, onComplete }: Props) {
         </div>
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading || !taxaEntrega || !tempoEspera}>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1">Voltar</Button>
+        <Button type="submit" className="flex-1" size="lg" disabled={loading || !taxaEntrega || !tempoEspera}>
         {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
         Continuar
       </Button>

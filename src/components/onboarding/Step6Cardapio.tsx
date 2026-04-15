@@ -7,9 +7,9 @@ import { CheckCircle2, Plus, Loader2, ArrowRight } from "lucide-react";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-interface Props { empresaId: string; onComplete: () => void; }
+interface Props { empresaId: string; onComplete: () => void; onBack?: () => void; }
 
-export default function Step6Cardapio({ empresaId, onComplete }: Props) {
+export default function Step6Cardapio({ empresaId, onComplete, onBack }: Props) {
   const [categoriaNome, setCategoriaNome] = useState("");
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [categoriaCriada, setCategoriaCriada] = useState(false);
@@ -91,6 +91,7 @@ export default function Step6Cardapio({ empresaId, onComplete }: Props) {
       </div>
 
       <div className="flex gap-2">
+        <Button variant="outline" onClick={onBack}>Voltar</Button>
         <Button variant="outline" className="flex-1" onClick={onComplete}>
           Pular por agora
         </Button>

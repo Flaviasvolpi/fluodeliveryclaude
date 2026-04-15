@@ -8,10 +8,10 @@ import { toast } from "sonner";
 
 interface Props {
   empresaId: string;
-  onComplete: () => void;
+  onComplete: () => void; onBack?: () => void;
 }
 
-export default function Step2DadosEstabelecimento({ empresaId, onComplete }: Props) {
+export default function Step2DadosEstabelecimento({ empresaId, onComplete, onBack }: Props) {
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -97,7 +97,9 @@ export default function Step2DadosEstabelecimento({ empresaId, onComplete }: Pro
 
       {uploading && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Enviando imagem...</p>}
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading || uploading || !telefone || !endereco}>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1">Voltar</Button>
+        <Button type="submit" className="flex-1" size="lg" disabled={loading || uploading || !telefone || !endereco}>
         {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
         Continuar
       </Button>
