@@ -100,9 +100,10 @@ export default function Step2DadosEstabelecimento({ empresaId, onComplete, onBac
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={onBack} className="flex-1">Voltar</Button>
         <Button type="submit" className="flex-1" size="lg" disabled={loading || uploading || !telefone || !endereco}>
-        {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-        Continuar
-      </Button>
+          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          Continuar
+        </Button>
+      </div>
     </form>
   );
 }
