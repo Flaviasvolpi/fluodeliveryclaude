@@ -6,6 +6,10 @@ import { CreateEmpresaDto, UpdateEmpresaDto } from './dto/create-empresa.dto';
 export class EmpresasService {
   constructor(private prisma: PrismaService) {}
 
+  async findBySlugSafe(slug: string) {
+    return this.prisma.empresa.findUnique({ where: { slug }, select: { id: true } });
+  }
+
   async findBySlug(slug: string) {
     const empresa = await this.prisma.empresa.findUnique({
       where: { slug },

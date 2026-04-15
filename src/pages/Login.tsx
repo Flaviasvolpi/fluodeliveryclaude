@@ -125,17 +125,16 @@ export default function Login() {
             <p className="text-xs text-muted-foreground">Conheça o cardápio digital em ação</p>
           </div>
 
-          {/* Info box */}
+          {/* Signup link */}
           <div className="bg-muted/50 border rounded-xl p-4 flex gap-3">
             <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div className="text-xs text-muted-foreground leading-relaxed">
               <p className="font-semibold text-foreground mb-1">Ainda não tem uma conta?</p>
               <p>
-                O acesso ao painel é criado durante a ativação do seu estabelecimento.{" "}
-                <Link to="/#contato" className="text-primary hover:underline font-medium">
-                  Solicite uma demonstração
-                </Link>{" "}
-                para começar a usar o FluoDelivery.
+                Cadastre seu estabelecimento em poucos minutos e comece a receber pedidos.{" "}
+                <Link to="/cadastro" className="text-primary hover:underline font-medium">
+                  Criar minha conta gratuitamente
+                </Link>
               </p>
             </div>
           </div>

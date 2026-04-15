@@ -9,6 +9,13 @@ export class EmpresasController {
   constructor(private service: EmpresasService) {}
 
   @Public()
+  @Get('check-slug/:slug')
+  async checkSlug(@Param('slug') slug: string) {
+    const empresa = await this.service.findBySlugSafe(slug);
+    return { available: !empresa };
+  }
+
+  @Public()
   @Get('by-slug/:slug')
   findBySlug(@Param('slug') slug: string) {
     return this.service.findBySlug(slug);

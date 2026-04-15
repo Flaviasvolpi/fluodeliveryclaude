@@ -47,6 +47,7 @@ import Vendas from "./pages/admin/Vendas";
 import Usuarios from "./pages/admin/Usuarios";
 import MinhaConta from "./pages/MinhaConta";
 import IfoodConfig from "./pages/admin/Ifood";
+import Cadastro from "./pages/Cadastro";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ const App = () => (
 
                 {/* Auth */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/cadastro" element={<Cadastro />} />
 
                 {/* Admin — scoped by empresa slug, access controlled by telaKey */}
                 <Route path="/admin/:slug" element={<AdminRoute telaKey="dashboard"><Dashboard /></AdminRoute>} />
