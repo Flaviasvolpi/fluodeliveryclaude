@@ -216,6 +216,7 @@ model ProdutoIngrediente {
   produto Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
 
   @@index([produtoId])
+  @@index([empresaId])
   @@map("produto_ingredientes")
 }
 
@@ -269,6 +270,7 @@ model ProdutoAdicionaisGrupo {
   empresa Empresa         @relation(fields: [empresaId], references: [id])
 
   @@id([produtoId, grupoId])
+  @@index([empresaId])
   @@map("produto_adicionais_grupos")
 }
 
@@ -330,6 +332,7 @@ model Cliente {
   cupons    Cupom[]
 
   @@unique([empresaId, telefone])
+  @@index([empresaId])
   @@map("clientes")
 }
 
@@ -349,6 +352,8 @@ model ClienteEndereco {
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
+  @@index([empresaId])
+  @@index([clienteId])
   @@map("cliente_enderecos")
 }
 
@@ -370,6 +375,7 @@ model Mesa {
   contas  Conta[]
 
   @@unique([empresaId, numero])
+  @@index([empresaId])
   @@map("mesas")
 }
 
@@ -481,6 +487,7 @@ model Conta {
   pagamentos        ContaPagamento[]
   caixaRecebimentos CaixaRecebimento[]
 
+  @@index([empresaId])
   @@map("contas")
 }
 
@@ -497,6 +504,8 @@ model ContaPagamento {
   conta          Conta           @relation(fields: [contaId], references: [id], onDelete: Cascade)
   formaPagamento FormaPagamento? @relation(fields: [formaPagamentoId], references: [id], onDelete: SetNull)
 
+  @@index([empresaId])
+  @@index([contaId])
   @@map("conta_pagamentos")
 }
 
@@ -520,6 +529,7 @@ model CaixaSessao {
   motoboyAcertos   MotoboyAcerto[]
   entregadorCaixas EntregadorCaixa[]
 
+  @@index([empresaId])
   @@map("caixa_sessoes")
 }
 
@@ -542,6 +552,8 @@ model CaixaRecebimento {
   conta          Conta?          @relation(fields: [contaId], references: [id])
   formaPagamento FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
 
+  @@index([empresaId])
+  @@index([caixaSessaoId])
   @@map("caixa_recebimentos")
 }
 
@@ -558,6 +570,7 @@ model MotoboyAcerto {
   empresa     Empresa      @relation(fields: [empresaId], references: [id])
   caixaSessao CaixaSessao? @relation(fields: [caixaSessaoId], references: [id])
 
+  @@index([empresaId])
   @@map("motoboy_acertos")
 }
 
@@ -577,6 +590,7 @@ model Entregador {
   pedidos Pedido[]
   caixas  EntregadorCaixa[]
 
+  @@index([empresaId])
   @@map("entregadores")
 }
 
@@ -596,6 +610,8 @@ model EntregadorCaixa {
   caixaSessao  CaixaSessao?            @relation(fields: [caixaSessaoId], references: [id])
   recebimentos EntregadorRecebimento[]
 
+  @@index([empresaId])
+  @@index([entregadorId])
   @@map("entregador_caixa")
 }
 
@@ -613,6 +629,8 @@ model EntregadorRecebimento {
   pedido          Pedido?         @relation(fields: [pedidoId], references: [id])
   formaPagamento  FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
 
+  @@index([empresaId])
+  @@index([entregadorCaixaId])
   @@map("entregador_recebimentos")
 }
 
@@ -675,6 +693,7 @@ model FidelidadeRegra {
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   cupons  Cupom[]
 
+  @@index([empresaId])
   @@map("fidelidade_regras")
 }
 

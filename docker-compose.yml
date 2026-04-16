@@ -4,7 +4,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: fluodelivery
       POSTGRES_USER: fluodelivery
@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3002:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,7 +50,7 @@ services:
         VITE_API_URL: /api
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8085:80"
     depends_on:
       - api
 
@@ -65,7 +65,7 @@ services:
     environment:
       DATABASE_URL: postgresql://fluodelivery:${DB_PASSWORD:-fluodelivery}@postgres:5432/fluodelivery?schema=public
     command: >
-      sh -c "npx prisma db push --skip-generate && node dist/prisma/seed.js || true"
+      sh -c "npx prisma db push --accept-data-loss && node dist/prisma/seed.js || true"
     restart: "no"
 
 volumes:
