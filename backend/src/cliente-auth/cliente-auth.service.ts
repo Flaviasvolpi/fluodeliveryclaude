@@ -83,10 +83,15 @@ export class ClienteAuthService {
         total: true, pedidoStatus: true, tipo: true,
         itens: {
           select: {
-            nomeSnapshot: true, qtd: true, precoUnitSnapshot: true,
+            produtoId: true, produtoVarianteId: true,
+            nomeSnapshot: true, qtd: true,
+            precoUnitSnapshot: true, custoUnitSnapshot: true,
             varianteNomeSnapshot: true, observacaoItem: true,
             adicionais: {
-              select: { nomeSnapshot: true, precoSnapshot: true, qtd: true },
+              select: {
+                adicionalItemId: true,
+                nomeSnapshot: true, precoSnapshot: true, qtd: true,
+              },
             },
           },
         },

@@ -10,7 +10,7 @@ export class LocalStorage implements StorageProvider {
 
   constructor() {
     this.baseDir = process.env.UPLOAD_DIR || './uploads';
-    this.baseUrl = process.env.UPLOAD_BASE_URL || `http://localhost:${process.env.PORT || 3000}/api/uploads`;
+    this.baseUrl = process.env.UPLOAD_BASE_URL || '/api/uploads';
   }
 
   async upload(bucket: string, filePath: string, file: Buffer, _contentType: string): Promise<string> {
