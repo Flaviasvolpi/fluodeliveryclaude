@@ -19,9 +19,9 @@ O sistema roda em 3 containers Docker:
 
 | Container | Tecnologia | Porta | Função |
 |-----------|------------|-------|--------|
-| `web` | Nginx + React | 80 | Serve o frontend e faz proxy para a API |
-| `api` | Node.js + NestJS | 3000 (interna) | API REST do backend |
-| `postgres` | PostgreSQL 16 | 5432 (interna) | Banco de dados |
+| `web` | Nginx + React | 8085 (host) → 80 (container) | Serve o frontend e faz proxy para a API |
+| `api` | Node.js + NestJS | 3002 (host) → 3000 (container) | API REST do backend |
+| `postgres` | PostgreSQL 16 | 5433 (host) → 5432 (container) | Banco de dados |
 
 Um 4o container (`seed`) roda uma única vez na primeira subida para criar as tabelas e dados iniciais.
 
@@ -78,7 +78,7 @@ Template com as variáveis que precisam ser configuradas antes de subir.
 
 - **Docker** e **Docker Compose** instalados no servidor
 - Mínimo 1 GB de RAM disponível
-- Portas 80 (HTTP) livres no servidor
+- Portas 8085 (frontend), 3002 (API) e 5433 (PostgreSQL) livres no servidor (configurável no docker-compose.yml)
 
 ### Verificar instalação
 

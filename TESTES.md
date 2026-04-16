@@ -37,9 +37,39 @@ O sistema possui uma suíte de testes QA que verifica **todas as funcionalidades
 
 ---
 
+## Testes E2E com Jest (CRUD)
+
+Arquivo: `backend/test/crud.e2e-spec.ts`
+
+**44 testes** usando Jest + fetch, rodando contra o backend no Docker (porta 3002).
+
+| Bloco | Testes | O que valida |
+|-------|--------|-------------|
+| Auth | 4 | Login, senha errada (401), /me com token, /me sem token |
+| Categorias | 5 | Criar, listar, editar, deletar, confirmar exclusao |
+| Produtos | 5 | Criar, listar, buscar por ID, editar, deletar |
+| Clientes | 5 | Criar, listar, buscar por ID, editar, deletar |
+| Entregadores | 4 | Criar, listar, editar, deletar |
+| Formas Pagamento | 4 | Criar, listar, editar, deletar |
+| Mesas | 4 | Criar (QR code), listar, editar, deletar |
+| Cupons | 4 | Criar, listar, editar, deletar |
+| Pedidos | 4 | Criar, listar, buscar por ID, atualizar status |
+| Rotas protegidas | 5 | 5 rotas retornam 401 sem token |
+
+### Como executar
+
+```bash
+cd backend
+npx jest --config test/jest-e2e.json crud.e2e-spec.ts --verbose
+```
+
+> Requer o backend rodando na porta 3002 (Docker) com seed executado.
+
+---
+
 ## Pré-requisitos
 
-1. **Backend rodando** em `http://localhost:3000`
+1. **Backend rodando** em `http://localhost:3000` (local) ou `http://localhost:3002` (Docker)
 2. **Banco de dados** com seed executado (usuário `admin@fluodelivery.com` / `admin123`)
 3. **Node.js 18+** instalado
 
