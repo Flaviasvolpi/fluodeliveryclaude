@@ -101,6 +101,7 @@ model Empresa {
   ifoodStatusMappings     IfoodStatusMapping[]
   horarios                HorarioFuncionamento[]
   ifoodCatalogSync        IfoodCatalogSync?
+  taxasEntregaCep         TaxaEntregaCep[]
 
   @@map("empresas")
 }
@@ -341,6 +342,7 @@ model ClienteEndereco {
   empresaId   String   @map("empresa_id") @db.Uuid
   clienteId   String   @map("cliente_id") @db.Uuid
   apelido     String   @default("Casa")
+  cep         String?
   rua         String
   numero      String
   bairro      String
@@ -810,4 +812,22 @@ model HorarioFuncionamento {
 
   @@unique([empresaId, diaSemana])
   @@map("horarios_funcionamento")
+}
+
+model TaxaEntregaCep {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  empresaId      String   @map("empresa_id") @db.Uuid
+  cepInicio      String   @map("cep_inicio") // 8 dígitos, só números
+  cepFim         String   @map("cep_fim")    // 8 dígitos, só números
+  nomeRegiao     String?  @map("nome_regiao")
+  taxa           Decimal  @db.Decimal(10, 2)
+  valorMinGratis Decimal? @map("valor_min_gratis") @db.Decimal(10, 2) // null = nunca dá grátis
+  ativo          Boolean  @default(true)
+  ordem          Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@map("taxas_entrega_cep")
 }

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Layers, Package, PlusCircle, CreditCard, ClipboardList, ChefHat,
   LogOut, Settings, QrCode, GitBranch, Headset, Tags, Receipt, Landmark, Truck, Wallet,
-  Users, Gift, Ticket, ShoppingBag, DollarSign, HelpCircle, TrendingUp,
+  Users, Gift, Ticket, ShoppingBag, DollarSign, HelpCircle, TrendingUp, MapPin,
 } from "lucide-react";
 import { SidebarFooter } from "@/components/ui/sidebar";
 
@@ -69,6 +69,7 @@ function AdminSidebar() {
         { title: "Caixa", url: `/admin/${slug}/caixa`, icon: Landmark, telaKey: "caixa" },
         { title: "Fechar Conta", url: `/admin/${slug}/fechamento`, icon: Receipt, telaKey: "fechamento" },
         { title: "Pagamentos", url: `/admin/${slug}/pagamentos`, icon: CreditCard, telaKey: "pagamentos" },
+        { title: "Taxas de Entrega", url: `/admin/${slug}/taxas-entrega`, icon: MapPin, telaKey: "taxas-entrega" },
         { title: "Margem de Lucro", url: `/admin/${slug}/margem-lucro`, icon: TrendingUp, telaKey: "margem-lucro" },
         { title: "Lucratividade", url: `/admin/${slug}/lucratividade`, icon: DollarSign, telaKey: "lucratividade" },
       ],

@@ -2,6 +2,9 @@ import { Link, useNavigate } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { useCart } from "@/contexts/CartContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useMesa } from "@/contexts/MesaContext";
+import { useLojaAberta } from "@/hooks/useLojaAberta";
+import LojaFechadaBanner from "@/components/LojaFechadaBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/format";
@@ -11,7 +14,10 @@ import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 export default function Carrinho() {
   const { items, removeItem, updateQty, itemCount } = useCart();
   const navigate = useNavigate();
-  const { slug } = useEmpresa();
+  const { slug, empresaId } = useEmpresa();
+  const { mesaId } = useMesa();
+  const { aberta } = useLojaAberta(empresaId);
+  const bloqueado = !mesaId && !aberta;
 
   if (itemCount === 0) {
     return (
@@ -33,6 +39,7 @@ export default function Carrinho() {
   return (
     <PublicLayout>
       <div className="container px-4 py-6 max-w-4xl mx-auto">
+        <LojaFechadaBanner empresaId={empresaId} className="mb-4" />
         <h2 className="text-xl font-bold mb-4">Seu Carrinho</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-4">
@@ -74,7 +81,7 @@ export default function Carrinho() {
                   <span>Total</span>
                   <span className="text-primary">{formatBRL(total)}</span>
                 </div>
-                <Button className="w-full" size="lg" onClick={() => navigate(`/loja/${slug}/checkout`)}>Finalizar Pedido</Button>
+                <Button className="w-full" size="lg" disabled={bloqueado} onClick={() => navigate(`/loja/${slug}/checkout`)}>{bloqueado ? "Loja fechada" : "Finalizar Pedido"}</Button>
               </CardContent>
             </Card>
           </div>

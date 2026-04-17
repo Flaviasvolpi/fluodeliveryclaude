@@ -151,11 +151,15 @@ export class ClienteAuthService {
         });
       }
 
+      const cepLimpo = endereco.cep ? String(endereco.cep).replace(/\D/g, '') : null;
+      const cepNormalizado = cepLimpo && cepLimpo.length === 8 ? cepLimpo : null;
+
       if (endereco.id) {
         await this.prisma.clienteEndereco.update({
           where: { id: endereco.id },
           data: {
             apelido: endereco.apelido || 'Casa',
+            cep: cepNormalizado,
             rua: endereco.rua,
             numero: endereco.numero,
             bairro: endereco.bairro,
@@ -170,6 +174,7 @@ export class ClienteAuthService {
             empresaId,
             clienteId,
             apelido: endereco.apelido || 'Casa',
+            cep: cepNormalizado,
             rua: endereco.rua,
             numero: endereco.numero,
             bairro: endereco.bairro,

@@ -48,6 +48,7 @@ import Vendas from "./pages/admin/Vendas";
 import Usuarios from "./pages/admin/Usuarios";
 import MinhaConta from "./pages/MinhaConta";
 import IfoodConfig from "./pages/admin/Ifood";
+import TaxasEntrega from "./pages/admin/TaxasEntrega";
 import Cadastro from "./pages/Cadastro";
 
 const queryClient = new QueryClient({
@@ -120,6 +121,7 @@ const App = () => (
                 <Route path="/admin/:slug/usuarios" element={<AdminRoute telaKey="usuarios"><Usuarios /></AdminRoute>} />
                 <Route path="/admin/:slug/ajuda" element={<AdminRoute telaKey="ajuda"><Ajuda /></AdminRoute>} />
                 <Route path="/admin/:slug/ifood" element={<AdminRoute telaKey="ifood"><IfoodConfig /></AdminRoute>} />
+                <Route path="/admin/:slug/taxas-entrega" element={<AdminRoute telaKey="taxas-entrega"><TaxasEntrega /></AdminRoute>} />
 
                 {/* Legacy redirects */}
                 <Route path="/" element={<LandingPage />} />

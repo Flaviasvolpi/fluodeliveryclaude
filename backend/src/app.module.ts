@@ -32,6 +32,7 @@ import { ClienteAuthModule } from './cliente-auth/cliente-auth.module';
 import { ExternalOrdersModule } from './external-orders/external-orders.module';
 import { UploadModule } from './upload/upload.module';
 import { IfoodModule } from './ifood/ifood.module';
+import { TaxasEntregaModule } from './taxas-entrega/taxas-entrega.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { IfoodModule } from './ifood/ifood.module';
     ExternalOrdersModule,
     UploadModule,
     IfoodModule,
+    TaxasEntregaModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

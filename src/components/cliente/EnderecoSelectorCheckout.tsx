@@ -11,6 +11,7 @@ const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}
 interface Endereco {
   id?: string;
   apelido: string;
+  cep?: string | null;
   rua: string;
   numero: string;
   bairro: string;
@@ -20,11 +21,17 @@ interface Endereco {
 }
 
 interface EnderecoForm {
+  cep: string;
   rua: string;
   numero: string;
   bairro: string;
   complemento: string;
   referencia: string;
+}
+
+function maskCep(v: string): string {
+  const d = String(v ?? "").replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
 interface Props {
@@ -37,7 +44,7 @@ interface Props {
 export default function EnderecoSelectorCheckout({ clienteId, empresaId, endereco, onEnderecoChange }: Props) {
   const [enderecos, setEnderecos] = useState<Endereco[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newApelido, setNewApelido] = useState("Casa");
@@ -63,7 +70,12 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
       const match = list.find(
         (e) => e.rua === endereco.rua && e.numero === endereco.numero && e.bairro === endereco.bairro
       );
-      if (match?.id) setSelectedId(match.id);
+      if (match?.id) {
+        setSelectedId(match.id);
+      } else if (list.length > 0) {
+        // Sem seleção e há endereços salvos → expande lista automaticamente
+        setExpanded(true);
+      }
     } catch {
       // silently fail
     } finally {
@@ -74,6 +86,7 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
   const selectEndereco = (e: Endereco) => {
     setSelectedId(e.id || null);
     onEnderecoChange({
+      cep: e.cep ? maskCep(e.cep) : "",
       rua: e.rua,
       numero: e.numero,
       bairro: e.bairro,
@@ -88,7 +101,7 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
     setSelectedId(null);
     setShowNewForm(true);
     setExpanded(true);
-    onEnderecoChange({ rua: "", numero: "", bairro: "", complemento: "", referencia: "" });
+    onEnderecoChange({ cep: "", rua: "", numero: "", bairro: "", complemento: "", referencia: "" });
   };
 
   const saveNewAddress = async () => {
@@ -107,6 +120,7 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
           action: "salvar",
           endereco: {
             apelido: newApelido || "Casa",
+            cep: endereco.cep ? endereco.cep.replace(/\D/g, "") : null,
             rua: endereco.rua,
             numero: endereco.numero,
             bairro: endereco.bairro,
@@ -129,7 +143,6 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
   };
 
   if (loading) return null;
-  if (enderecos.length === 0 && !showNewForm) return null;
 
   const selected = enderecos.find((e) => e.id === selectedId);
 
@@ -155,11 +168,18 @@ export default function EnderecoSelectorCheckout({ clienteId, empresaId, enderec
       {expanded && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Seus endereços</p>
-            <button type="button" className="text-xs text-muted-foreground" onClick={() => setExpanded(false)}>
-              <ChevronUp className="h-4 w-4 inline" /> Fechar
-            </button>
+            <p className="text-sm font-medium">Seus endereços salvos</p>
+            {selected && (
+              <button type="button" className="text-xs text-muted-foreground" onClick={() => setExpanded(false)}>
+                <ChevronUp className="h-4 w-4 inline" /> Fechar
+              </button>
+            )}
           </div>
+          {enderecos.length === 0 && (
+            <p className="text-sm text-muted-foreground py-2 px-3 border border-dashed rounded-lg">
+              Nenhum endereço salvo ainda. Preencha abaixo e clique em "Salvar endereço" ao finalizar.
+            </p>
+          )}
           {enderecos.map((e) => (
             <button
               key={e.id}

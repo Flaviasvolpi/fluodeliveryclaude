@@ -87,10 +87,12 @@ async function main() {
   console.log(`✅ Formas de pagamento padrão criadas`);
 
   // 7. Seed default pedido tipos config
+  // origem: "ambos" aparece tanto no cardápio online (/loja/:slug) quanto no atendimento interno;
+  // "interno" só aparece no atendimento/mesa.
   const tipos = [
-    { tipoKey: 'retirada', label: 'Retirada', ordem: 0 },
-    { tipoKey: 'entrega', label: 'Entrega', ordem: 1 },
-    { tipoKey: 'mesa', label: 'Mesa', ordem: 2 },
+    { tipoKey: 'retirada', label: 'Retirada', ordem: 0, origem: 'ambos', exigeEndereco: false },
+    { tipoKey: 'entrega', label: 'Entrega', ordem: 1, origem: 'ambos', exigeEndereco: true },
+    { tipoKey: 'mesa', label: 'Mesa', ordem: 2, origem: 'interno', exigeMesa: true },
   ];
   for (const tipo of tipos) {
     await prisma.pedidoTipoConfig.upsert({

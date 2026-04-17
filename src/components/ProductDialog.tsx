@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useMesa } from "@/contexts/MesaContext";
+import { useLojaAberta } from "@/hooks/useLojaAberta";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +23,9 @@ interface ProductDialogProps {
 
 export default function ProductDialog({ produto, open, onClose }: ProductDialogProps) {
   const { empresaId } = useEmpresa();
+  const { mesaId } = useMesa();
+  const { aberta } = useLojaAberta(empresaId);
+  const bloqueado = !mesaId && !aberta;
   const { addItem } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
@@ -210,7 +215,14 @@ export default function ProductDialog({ produto, open, onClose }: ProductDialogP
             <span className="font-medium w-6 text-center text-sm">{qty}</span>
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setQty(qty + 1)}><Plus className="h-4 w-4" /></Button>
           </div>
-          <Button onClick={handleAdd} disabled={!canAdd()} className="gap-1.5 text-sm shrink-0">Adicionar {formatBRL(unitTotal * qty)}</Button>
+          <Button
+            onClick={handleAdd}
+            disabled={!canAdd() || bloqueado}
+            className="gap-1.5 text-sm shrink-0"
+            title={bloqueado ? "Loja fechada no momento" : undefined}
+          >
+            {bloqueado ? "Loja fechada" : `Adicionar ${formatBRL(unitTotal * qty)}`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

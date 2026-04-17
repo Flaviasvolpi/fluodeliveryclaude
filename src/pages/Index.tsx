@@ -12,6 +12,7 @@ import type { Produto, ProdutoVariante } from "@/types/database";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import ProductDialog from "@/components/ProductDialog";
 import ProductCard from "@/components/ProductCard";
+import LojaFechadaBanner from "@/components/LojaFechadaBanner";
 
 export default function Index() {
   useOrigem();
@@ -123,26 +124,27 @@ export default function Index() {
           <img src={bannerUrl} alt="Banner" className="w-full aspect-[2.5/1] md:aspect-[4/1] max-h-[280px] object-cover" />
         </div>
       )}
-      <div className="container px-4 py-4 space-y-0 max-w-[100vw] overflow-hidden">
+      <div className="container px-4 py-4 space-y-0 max-w-[100vw]">
+        <LojaFechadaBanner empresaId={empresaId} className="mb-4" />
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar produtos..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         {!isSearching && categorias && categorias.length > 0 && (
-          <div ref={catBarRef} className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none sticky top-14 z-10 bg-background pt-2 -mx-4 px-4">
-            <Button variant={activeCat === null ? "default" : "outline"} size="sm" onClick={scrollToTop}>Todos</Button>
+          <div ref={catBarRef} className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none sticky top-14 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border pt-3 -mx-4 px-4 shadow-sm">
+            <Button variant={activeCat === null ? "default" : "outline"} size="default" onClick={scrollToTop} className="text-base font-semibold whitespace-nowrap">Todos</Button>
             {sections.map((s) => (
-              <Button key={s.id} data-cat-btn={s.id} variant={activeCat === s.id ? "default" : "outline"} size="sm" onClick={() => scrollToSection(s.id)} className="whitespace-nowrap">{s.nome}</Button>
+              <Button key={s.id} data-cat-btn={s.id} variant={activeCat === s.id ? "default" : "outline"} size="default" onClick={() => scrollToSection(s.id)} className="whitespace-nowrap text-base font-semibold">{s.nome}</Button>
             ))}
           </div>
         )}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {[1, 2, 3].map((i) => (<Card key={i} className="p-4"><LoadingSkeleton lines={4} /></Card>))}
           </div>
         ) : isSearching ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 w-full max-w-full overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0 w-full max-w-full overflow-hidden">
               {produtos?.map((p: any) => (
                 <ProductCard key={p.id} product={p} onClick={() => setSelectedProduct(p)} />
               ))}
@@ -153,8 +155,8 @@ export default function Index() {
           <div className="space-y-8">
             {sections.map((section) => (
               <div key={section.id} ref={(el) => { sectionRefs.current[section.id] = el; }} data-cat-id={section.id} className="scroll-mt-28">
-                <h2 className="text-lg font-bold text-foreground mb-3">{section.nome}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 w-full max-w-full overflow-hidden">
+                <h2 className="text-2xl font-bold text-foreground mb-4">{section.nome}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0 w-full max-w-full overflow-hidden">
                   {section.items.map((p: any) => (
                     <ProductCard key={p.id} product={p} onClick={() => setSelectedProduct(p)} />
                   ))}

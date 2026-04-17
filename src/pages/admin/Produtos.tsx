@@ -989,6 +989,7 @@ function VariantesDialog({
 
         {formOpen && (
           <VarianteForm
+            key={editVar?.id ?? "new"}
             initial={editVar}
             onSubmit={(v) => upsert.mutate(v)}
             loading={upsert.isPending}

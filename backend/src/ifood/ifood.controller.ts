@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IfoodApiService } from './ifood-api.service';
 import { IfoodCatalogService } from './ifood-catalog.service';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 import {
   UpdateIfoodConfigDto,
   BulkIfoodStatusMappingDto,
@@ -198,6 +198,7 @@ export class HorariosController {
   constructor(private prisma: PrismaService) {}
 
   @Get()
+  @Public()
   async findAll(@Param('empresaId') empresaId: string) {
     return this.prisma.horarioFuncionamento.findMany({
       where: { empresaId },

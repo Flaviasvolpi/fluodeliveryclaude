@@ -35,6 +35,7 @@ export class MeusEnderecosDto {
   @IsOptional() endereco?: {
     id?: string;
     apelido?: string;
+    cep?: string;
     rua: string;
     numero: string;
     bairro: string;

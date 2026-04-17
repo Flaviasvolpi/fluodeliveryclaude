@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { PedidoTiposConfigService } from './pedido-tipos-config.service';
 import { CreatePedidoTipoConfigDto, UpdatePedidoTipoConfigDto } from './dto/pedido-tipos-config.dto';
-import { Roles } from '../common/decorators';
+import { Roles, Public } from '../common/decorators';
 
 @Controller('empresas/:empresaId/pedido-tipos-config')
 export class PedidoTiposConfigController {
   constructor(private service: PedidoTiposConfigService) {}
 
   @Get()
+  @Public()
   findAll(@Param('empresaId') empresaId: string) {
     return this.service.findAll(empresaId);
   }

@@ -194,10 +194,11 @@ export class AuthService {
       }
 
       // 7. Tipos de pedido padrão
+      // origem: "ambos" aparece no cardápio online E no atendimento interno; "interno" só aparece no atendimento
       const tipos = [
-        { tipoKey: 'retirada', label: 'Retirada', ordem: 0, exigeEndereco: false, exigeMesa: false },
-        { tipoKey: 'entrega', label: 'Entrega', ordem: 1, exigeEndereco: true, exigeMesa: false },
-        { tipoKey: 'mesa', label: 'Mesa', ordem: 2, exigeEndereco: false, exigeMesa: true },
+        { tipoKey: 'retirada', label: 'Retirada', ordem: 0, origem: 'ambos', exigeEndereco: false, exigeMesa: false },
+        { tipoKey: 'entrega', label: 'Entrega', ordem: 1, origem: 'ambos', exigeEndereco: true, exigeMesa: false },
+        { tipoKey: 'mesa', label: 'Mesa', ordem: 2, origem: 'interno', exigeEndereco: false, exigeMesa: true },
       ];
       for (const tipo of tipos) {
         await tx.pedidoTipoConfig.create({ data: { empresaId: empresa.id, ...tipo } });

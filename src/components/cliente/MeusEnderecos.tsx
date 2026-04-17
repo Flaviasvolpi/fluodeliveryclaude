@@ -15,12 +15,18 @@ const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}
 interface Endereco {
   id?: string;
   apelido: string;
+  cep?: string | null;
   rua: string;
   numero: string;
   bairro: string;
   complemento?: string;
   referencia?: string;
   padrao: boolean;
+}
+
+function maskCep(v: string): string {
+  const d = String(v ?? "").replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
 export default function MeusEnderecos({ clienteId }: { clienteId: string }) {
@@ -149,10 +155,10 @@ function EnderecoDialog({ open, endereco, onClose, onSave }: {
   onClose: () => void;
   onSave: (e: Endereco) => void;
 }) {
-  const [form, setForm] = useState<Endereco>(endereco || { apelido: "Casa", rua: "", numero: "", bairro: "", padrao: false });
+  const [form, setForm] = useState<Endereco>(endereco || { apelido: "Casa", cep: "", rua: "", numero: "", bairro: "", padrao: false });
 
   useEffect(() => {
-    if (endereco) setForm(endereco);
+    if (endereco) setForm({ ...endereco, cep: endereco.cep ? maskCep(endereco.cep) : "" });
   }, [endereco]);
 
   const update = (field: string, value: string | boolean) => setForm((f) => ({ ...f, [field]: value }));
@@ -167,6 +173,32 @@ function EnderecoDialog({ open, endereco, onClose, onSave }: {
           <div className="space-y-1">
             <Label>Apelido</Label>
             <Input value={form.apelido} onChange={(e) => update("apelido", e.target.value)} placeholder="Ex: Casa, Trabalho" maxLength={50} />
+          </div>
+          <div className="space-y-1">
+            <Label>CEP</Label>
+            <Input
+              value={form.cep || ""}
+              placeholder="00000-000"
+              maxLength={9}
+              onChange={async (e) => {
+                const masked = maskCep(e.target.value);
+                update("cep", masked);
+                const digits = masked.replace(/\D/g, "");
+                if (digits.length === 8) {
+                  try {
+                    const r = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+                    const d = await r.json();
+                    if (!d.erro) {
+                      setForm((f) => ({
+                        ...f,
+                        rua: f.rua || d.logradouro || "",
+                        bairro: f.bairro || d.bairro || "",
+                      }));
+                    }
+                  } catch { /* silencioso */ }
+                }
+              }}
+            />
           </div>
           <div className="space-y-1">
             <Label>Rua</Label>
@@ -194,7 +226,11 @@ function EnderecoDialog({ open, endereco, onClose, onSave }: {
             <Switch checked={form.padrao} onCheckedChange={(v) => update("padrao", v)} />
             <Label>Endereço padrão</Label>
           </div>
-          <Button className="w-full" onClick={() => onSave(form)} disabled={!form.rua || !form.numero || !form.bairro}>
+          <Button
+            className="w-full"
+            onClick={() => onSave({ ...form, cep: form.cep ? form.cep.replace(/\D/g, "") : null })}
+            disabled={!form.rua || !form.numero || !form.bairro}
+          >
             Salvar
           </Button>
         </div>

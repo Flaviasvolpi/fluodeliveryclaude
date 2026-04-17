@@ -25,6 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, MessageCircle, MessageSquare, UtensilsCrossed, UserCircle, LogIn } from "lucide-react";
 import BotaoVoltarAtendimento from "@/components/BotaoVoltarAtendimento";
 import { useTiposConfig, getOnlineTipos } from "@/hooks/useTiposConfig";
+import { useLojaAberta } from "@/hooks/useLojaAberta";
+import LojaFechadaBanner from "@/components/LojaFechadaBanner";
 
 const BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/v1/cliente-auth`;
 
@@ -38,10 +40,23 @@ export default function Checkout() {
   const isMesa = !!mesaId;
   const { data: tiposConfig } = useTiposConfig(empresaId);
   const onlineTipos = tiposConfig ? getOnlineTipos(tiposConfig) : [];
+  const { aberta: lojaAberta } = useLojaAberta(empresaId);
+  const lojaBloqueada = !isMesa && !lojaAberta;
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [tipo, setTipo] = useState<PedidoTipo>(isMesa ? "mesa" : "retirada");
-  const [endereco, setEndereco] = useState({ rua: "", numero: "", bairro: "", complemento: "", referencia: "" });
+  const [endereco, setEndereco] = useState({ cep: "", rua: "", numero: "", bairro: "", complemento: "", referencia: "" });
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepResolve, setCepResolve] = useState<{
+    entrega: boolean;
+    taxa: number | null;
+    taxa_original?: number;
+    nome_regiao?: string | null;
+    valor_min_gratis?: number | null;
+    falta_para_gratis?: number | null;
+    gratis?: boolean;
+    motivo?: string;
+  } | null>(null);
   const [formaPagId, setFormaPagId] = useState<string | null>(null);
   const [trocoParaValue, setTrocoParaValue] = useState("");
   const [taxaEntregaValue, setTaxaEntregaValue] = useState("");
@@ -93,7 +108,10 @@ export default function Checkout() {
         .then((data) => {
           const padrao = (data.enderecos || []).find((e: any) => e.padrao) || data.enderecos?.[0];
           if (padrao) {
+            const cepRaw = padrao.cep ? String(padrao.cep).replace(/\D/g, "") : "";
+            const cepMasked = cepRaw.length > 5 ? `${cepRaw.slice(0, 5)}-${cepRaw.slice(5)}` : cepRaw;
             setEndereco({
+              cep: cepMasked,
               rua: padrao.rua || "",
               numero: padrao.numero || "",
               bairro: padrao.bairro || "",
@@ -185,7 +203,44 @@ export default function Checkout() {
 
   const selectedForma = formasPag?.find((f: any) => f.id === formaPagId);
   const subtotal = calcCartTotal(items);
-  const taxaEntrega = tipoExigeEndereco ? (parseFloat(taxaEntregaValue) || 0) : 0;
+  const taxaEntrega = tipoExigeEndereco
+    ? (cepResolve?.entrega
+        ? (cepResolve.taxa ?? 0)
+        : (parseFloat(taxaEntregaValue) || 0))
+    : 0;
+  const cepBloqueiaEntrega = tipoExigeEndereco && cepResolve !== null && !cepResolve.entrega;
+
+  // CEP → ViaCEP (preenche endereço) + resolve (calcula taxa por faixa)
+  useEffect(() => {
+    if (!tipoExigeEndereco) return;
+    const cepDigitos = (endereco.cep || "").replace(/\D/g, "");
+    if (cepDigitos.length !== 8) {
+      setCepResolve(null);
+      return;
+    }
+    let cancelado = false;
+    setCepLoading(true);
+    (async () => {
+      try {
+        const [viaCep, resolveRes] = await Promise.all([
+          fetch(`https://viacep.com.br/ws/${cepDigitos}/json/`).then((r) => r.json()).catch(() => null),
+          api.post(`/empresas/${empresaId}/taxas-entrega/resolve`, { cep: cepDigitos, subtotal }).then((r) => r.data).catch(() => null),
+        ]);
+        if (cancelado) return;
+        if (viaCep && !viaCep.erro) {
+          setEndereco((prev) => ({
+            ...prev,
+            rua: prev.rua || viaCep.logradouro || "",
+            bairro: prev.bairro || viaCep.bairro || "",
+          }));
+        }
+        setCepResolve(resolveRes);
+      } finally {
+        if (!cancelado) setCepLoading(false);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [endereco.cep, tipoExigeEndereco, empresaId, subtotal]);
   const desconto = cupomValidado
     ? cupomValidado.tipo_desconto === "percentual"
       ? Math.min(Math.round(subtotal * cupomValidado.valor_desconto) / 100, subtotal)
@@ -369,6 +424,7 @@ export default function Checkout() {
       <BotaoVoltarAtendimento />
       <div className="container px-4 py-6 max-w-4xl mx-auto">
         <h2 className="text-xl font-bold mb-4">Finalizar Pedido</h2>
+        <LojaFechadaBanner empresaId={empresaId} className="mb-4" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
             <Card>
@@ -440,6 +496,38 @@ export default function Checkout() {
                           onEnderecoChange={setEndereco}
                         />
                       )}
+                      <div className="space-y-1">
+                        <Label>CEP *</Label>
+                        <Input
+                          placeholder="00000-000"
+                          value={endereco.cep}
+                          maxLength={9}
+                          onChange={(e) => {
+                            const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+                            const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+                            setEndereco({ ...endereco, cep: masked });
+                          }}
+                        />
+                        {cepLoading && <p className="text-xs text-muted-foreground">Consultando CEP...</p>}
+                        {!cepLoading && cepResolve && cepResolve.entrega && (
+                          <div className="text-xs space-y-0.5">
+                            <p className="text-green-600 font-medium">
+                              ✓ Entregamos nessa região{cepResolve.nome_regiao ? ` (${cepResolve.nome_regiao})` : ""}
+                              {cepResolve.gratis ? " — Frete GRÁTIS!" : ` — Taxa: ${formatBRL(cepResolve.taxa || 0)}`}
+                            </p>
+                            {cepResolve.falta_para_gratis !== null && cepResolve.falta_para_gratis !== undefined && cepResolve.valor_min_gratis != null && (
+                              <p className="text-muted-foreground">
+                                Faltam <b>{formatBRL(cepResolve.falta_para_gratis)}</b> para frete grátis (mín. {formatBRL(cepResolve.valor_min_gratis)})
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {!cepLoading && cepResolve && !cepResolve.entrega && (
+                          <p className="text-xs text-destructive font-medium">
+                            ✗ Infelizmente não entregamos nesse CEP.
+                          </p>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="sm:col-span-2 space-y-1"><Label>Rua *</Label><Input value={endereco.rua} onChange={(e) => setEndereco({ ...endereco, rua: e.target.value })} /></div>
                         <div className="space-y-1"><Label>Nº *</Label><Input value={endereco.numero} onChange={(e) => setEndereco({ ...endereco, numero: e.target.value })} /></div>
@@ -447,7 +535,7 @@ export default function Checkout() {
                       <div className="space-y-1"><Label>Bairro *</Label><Input value={endereco.bairro} onChange={(e) => setEndereco({ ...endereco, bairro: e.target.value })} /></div>
                       <div className="space-y-1"><Label>Complemento</Label><Input value={endereco.complemento} onChange={(e) => setEndereco({ ...endereco, complemento: e.target.value })} /></div>
                       <div className="space-y-1"><Label>Referência</Label><Input value={endereco.referencia} onChange={(e) => setEndereco({ ...endereco, referencia: e.target.value })} /></div>
-                      <div className="space-y-1"><Label>Taxa de entrega (R$)</Label><Input type="number" min="0" step="0.01" placeholder="0,00" value={taxaEntregaValue} readOnly disabled className="bg-muted" /></div>
+                      <div className="space-y-1"><Label>Taxa de entrega (R$)</Label><Input type="number" min="0" step="0.01" placeholder="0,00" value={taxaEntrega.toFixed(2)} readOnly disabled className="bg-muted" /></div>
                     </div>
                   )}
                 </CardContent>
@@ -536,8 +624,8 @@ export default function Checkout() {
             <div className="space-y-1"><Label>Observações gerais</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Alguma observação sobre o pedido?" rows={2} /></div>
             <div className="md:hidden space-y-4">
               {summaryCard}
-              <Button className="w-full" size="lg" onClick={() => createPedido.mutate()} disabled={!isFormValid || createPedido.isPending}>
-                {createPedido.isPending ? "Enviando..." : `Confirmar Pedido · ${formatBRL(total)}`}
+              <Button className="w-full" size="lg" onClick={() => createPedido.mutate()} disabled={!isFormValid || createPedido.isPending || lojaBloqueada || cepBloqueiaEntrega}>
+                {lojaBloqueada ? "Loja fechada — pedidos indisponíveis" : cepBloqueiaEntrega ? "Não entregamos nesse CEP" : createPedido.isPending ? "Enviando..." : `Confirmar Pedido · ${formatBRL(total)}`}
               </Button>
               {createPedido.isError && <p className="text-sm text-destructive text-center">Erro ao criar pedido. Tente novamente.</p>}
             </div>
@@ -545,8 +633,8 @@ export default function Checkout() {
           <div className="hidden md:block">
             <div className="sticky top-20 space-y-4">
               {summaryCard}
-              <Button className="w-full" size="lg" onClick={() => createPedido.mutate()} disabled={!isFormValid || createPedido.isPending}>
-                {createPedido.isPending ? "Enviando..." : `Confirmar Pedido · ${formatBRL(total)}`}
+              <Button className="w-full" size="lg" onClick={() => createPedido.mutate()} disabled={!isFormValid || createPedido.isPending || lojaBloqueada || cepBloqueiaEntrega}>
+                {lojaBloqueada ? "Loja fechada — pedidos indisponíveis" : cepBloqueiaEntrega ? "Não entregamos nesse CEP" : createPedido.isPending ? "Enviando..." : `Confirmar Pedido · ${formatBRL(total)}`}
               </Button>
               {createPedido.isError && <p className="text-sm text-destructive text-center">Erro ao criar pedido. Tente novamente.</p>}
             </div>
