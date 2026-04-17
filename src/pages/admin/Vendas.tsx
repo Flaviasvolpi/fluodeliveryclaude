@@ -35,49 +35,43 @@ export default function Vendas() {
     };
   }, [preset, customFrom, customTo]);
 
-  const { data: pedidos, isLoading: loadingPedidos } = useQuery({
-    queryKey: ["vendas-pedidos", empresa.id, dateRange.from.toISOString(), dateRange.to.toISOString()],
+  const { data: pedidos, isLoading } = useQuery({
+    queryKey: ["vendas-pedidos", empresa.id, format(dateRange.from, "yyyy-MM-dd"), format(dateRange.to, "yyyy-MM-dd")],
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresa.id}/pedidos`, {
-        params: { from: dateRange.from.toISOString(), to: dateRange.to.toISOString(), exclude_status: "cancelado" }
+        params: {
+          dateFrom: format(dateRange.from, "yyyy-MM-dd"),
+          dateTo: format(dateRange.to, "yyyy-MM-dd"),
+        },
       });
       return data;
     },
   });
 
-  const pedidoIds = useMemo(() => pedidos?.map((p) => p.id) ?? [], [pedidos]);
-
-  const { data: itens, isLoading: loadingItens } = useQuery({
-    queryKey: ["vendas-itens", empresa.id, pedidoIds],
-    enabled: pedidoIds.length > 0,
-    queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresa.id}/pedido-itens`);
-      return data;
-    },
-  });
-
-  const isLoading = loadingPedidos || loadingItens;
-
   const resumo = useMemo(() => {
-    const totalPedidos = pedidos?.length ?? 0;
-    const faturamento = pedidos?.reduce((s, p) => s + p.total, 0) ?? 0;
+    const validos = (pedidos ?? []).filter((p) => p.pedido_status !== "cancelado");
+    const totalPedidos = validos.length;
+    const faturamento = validos.reduce((s, p) => s + Number(p.total), 0);
     const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
-    const totalItens = itens?.reduce((s, i) => s + i.qtd, 0) ?? 0;
 
+    let totalItens = 0;
     const map = new Map<string, { nome: string; qtd: number; total: number }>();
-    for (const i of itens ?? []) {
-      const nome = i.variante_nome_snapshot
-        ? `${i.nome_snapshot} (${i.variante_nome_snapshot})`
-        : i.nome_snapshot;
-      const cur = map.get(nome) ?? { nome, qtd: 0, total: 0 };
-      cur.qtd += i.qtd;
-      cur.total += i.preco_unit_snapshot * i.qtd;
-      map.set(nome, cur);
+    for (const p of validos) {
+      for (const i of p.itens ?? []) {
+        totalItens += i.qtd;
+        const nome = i.variante_nome_snapshot
+          ? `${i.nome_snapshot} (${i.variante_nome_snapshot})`
+          : i.nome_snapshot;
+        const cur = map.get(nome) ?? { nome, qtd: 0, total: 0 };
+        cur.qtd += i.qtd;
+        cur.total += Number(i.preco_unit_snapshot) * i.qtd;
+        map.set(nome, cur);
+      }
     }
     const ranking = [...map.values()].sort((a, b) => b.qtd - a.qtd);
 
     return { totalPedidos, faturamento, ticketMedio, totalItens, ranking };
-  }, [pedidos, itens]);
+  }, [pedidos]);
 
   return (
     <AdminLayout>

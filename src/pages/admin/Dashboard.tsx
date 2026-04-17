@@ -54,26 +54,33 @@ export default function Dashboard() {
     },
   });
 
-  // Today's start (local timezone)
-  const todayStart = useMemo(() => {
+  const todayStr = useMemo(() => {
     const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   }, []);
 
   const { data: pedidosHoje } = useQuery({
-    queryKey: ["admin-pedidos-hoje", empresaId, todayStart],
+    queryKey: ["admin-pedidos-hoje", empresaId, todayStr],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/pedidos`);
+      const { data } = await api.get(`/empresas/${empresaId}/pedidos`, {
+        params: { dateFrom: todayStr, dateTo: todayStr },
+      });
       return data;
     },
   });
 
   const vendasHoje = useMemo(() => {
-    const totalPedidos = pedidosHoje?.length ?? 0;
-    const faturamento = pedidosHoje?.reduce((s, p) => s + p.total, 0) ?? 0;
+    const validos = (pedidosHoje ?? []).filter((p) => p.pedido_status !== "cancelado");
+    const totalPedidos = validos.length;
+    const faturamento = validos.reduce((s, p) => s + Number(p.total), 0);
     const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
-    const totalItens = 0; // detailed count available in /vendas page
+    const totalItens = validos.reduce(
+      (s, p) => s + (p.itens ?? []).reduce((ss: number, i: any) => ss + i.qtd, 0),
+      0,
+    );
 
     return { totalPedidos, faturamento, ticketMedio, totalItens };
   }, [pedidosHoje]);

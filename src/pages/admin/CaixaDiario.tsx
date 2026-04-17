@@ -36,18 +36,30 @@ export default function CaixaDiario() {
   const [sangriaDialog, setSangriaDialog] = useState<"sangria" | "reforco" | null>(null);
   const [sangriaValor, setSangriaValor] = useState(0);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayISO = today.toISOString();
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const todayISO = useMemo(() => today.toISOString(), [today]);
 
-  // Sessão do dia
-  const { data: sessao, isLoading: loadingSessao } = useQuery({
-    queryKey: ["caixa-sessao", empresaId],
+  // Sessões do dia — backend retorna array ordenada por abertoEm desc
+  const { data: sessoes, isLoading: loadingSessao } = useQuery({
+    queryKey: ["caixa-sessoes", empresaId],
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresaId}/caixa/sessoes`);
-      return data;
+      return data as any[];
     },
   });
+
+  // Sessão mais recente de hoje (aberta ou fechada)
+  const sessao = useMemo(() => {
+    if (!sessoes?.length) return null;
+    return sessoes.find((s) => {
+      const abertoEm = s.aberto_em ? new Date(s.aberto_em) : null;
+      return abertoEm && abertoEm >= today;
+    }) ?? null;
+  }, [sessoes, today]);
 
   const sessaoAberta = sessao?.status === "aberto";
 
@@ -55,7 +67,9 @@ export default function CaixaDiario() {
   const { data: recebimentos } = useQuery({
     queryKey: ["caixa-recebimentos", sessao?.id],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/caixa/recebimentos`);
+      const { data } = await api.get(`/empresas/${empresaId}/caixa/recebimentos`, {
+        params: { caixaSessaoId: sessao!.id },
+      });
       return data as any[];
     },
     enabled: !!sessao?.id,
@@ -74,7 +88,9 @@ export default function CaixaDiario() {
   const { data: acertos } = useQuery({
     queryKey: ["motoboy-acertos", sessao?.id],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/caixa/acertos`);
+      const { data } = await api.get(`/empresas/${empresaId}/caixa/acertos`, {
+        params: { caixaSessaoId: sessao!.id },
+      });
       return data;
     },
     enabled: !!sessao?.id,
@@ -121,7 +137,7 @@ export default function CaixaDiario() {
       toast.success("Caixa aberto!");
       setOpenAbrirDialog(false);
       setValorAbertura(0);
-      queryClient.invalidateQueries({ queryKey: ["caixa-sessao"] });
+      queryClient.invalidateQueries({ queryKey: ["caixa-sessoes"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -136,7 +152,7 @@ export default function CaixaDiario() {
     },
     onSuccess: () => {
       toast.success("Caixa fechado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["caixa-sessao"] });
+      queryClient.invalidateQueries({ queryKey: ["caixa-sessoes"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
