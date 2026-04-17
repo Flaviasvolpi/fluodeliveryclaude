@@ -65,7 +65,7 @@ services:
     environment:
       DATABASE_URL: postgresql://fluodelivery:${DB_PASSWORD:-fluodelivery}@postgres:5432/fluodelivery?schema=public
     command: >
-      sh -c "npx prisma db push --accept-data-loss && node dist/prisma/seed.js || true"
+      sh -c "npx prisma db push && node dist/prisma/seed.js || true"
     restart: "no"
 
 volumes:
