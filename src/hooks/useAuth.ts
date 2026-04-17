@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 
 export interface AuthUser {
@@ -8,45 +8,40 @@ export interface AuthUser {
   roles?: { role: string; empresaId: string; empresa: { id: string; nome: string; slug: string } }[];
 }
 
+async function fetchMe(): Promise<AuthUser | null> {
+  const token = localStorage.getItem("access_token");
+  if (!token) return null;
+
+  try {
+    const { data } = await api.get("/auth/me");
+    return {
+      id: data.id,
+      email: data.email,
+      fullName: data.full_name,
+      roles: data.roles,
+    };
+  } catch {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    return null;
+  }
+}
+
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadUser = useCallback(async () => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data } = await api.get("/auth/me");
-      setUser({
-        id: data.id,
-        email: data.email,
-        fullName: data.full_name,
-        roles: data.roles,
-      });
-    } catch {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["auth-me"],
+    queryFn: fetchMe,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const signIn = async (email: string, password: string) => {
     try {
       const { data } = await api.post("/auth/login", { email, password });
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
-      await loadUser();
+      await queryClient.refetchQueries({ queryKey: ["auth-me"] });
       return { error: null };
     } catch (err: any) {
       return { error: { message: err.response?.data?.message || "Erro ao fazer login" } };
@@ -56,11 +51,11 @@ export function useAuth() {
   const signOut = async () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-    setUser(null);
+    queryClient.clear();
+    window.location.href = "/login";
   };
 
-  // Compatibility: expose user.id as session-like
   const session = user ? { user } : null;
 
-  return { user, session, loading, signIn, signOut };
+  return { user: user ?? null, session, loading: isLoading, signIn, signOut };
 }

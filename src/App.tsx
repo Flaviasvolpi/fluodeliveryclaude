@@ -9,6 +9,7 @@ import { EmpresaProvider } from "@/contexts/EmpresaContext";
 import { MesaProvider } from "@/contexts/MesaContext";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminGate from "@/components/AdminGate";
 import Index from "./pages/Index";
 import Carrinho from "./pages/Carrinho";
 import Checkout from "./pages/Checkout";
@@ -49,7 +50,16 @@ import MinhaConta from "./pages/MinhaConta";
 import IfoodConfig from "./pages/admin/Ifood";
 import Cadastro from "./pages/Cadastro";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function GarcomRedirect() {
   const { slug } = useParams();
@@ -57,11 +67,7 @@ function GarcomRedirect() {
 }
 
 function AdminRoute({ telaKey, children }: { telaKey: string; children: React.ReactNode }) {
-  return (
-    <EmpresaProvider>
-      <ProtectedRoute telaKey={telaKey}>{children}</ProtectedRoute>
-    </EmpresaProvider>
-  );
+  return <AdminGate telaKey={telaKey}>{children}</AdminGate>;
 }
 
 const App = () => (

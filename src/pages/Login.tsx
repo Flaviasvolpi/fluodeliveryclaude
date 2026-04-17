@@ -118,7 +118,7 @@ export default function Login() {
               variant="outline"
               className="w-full border-[hsl(var(--fluo-brand))] text-[hsl(var(--fluo-brand))] hover:bg-[hsl(var(--fluo-brand))/0.1] gap-2"
               size="lg"
-              onClick={() => navigate('/loja/minha-empresa')}
+              onClick={() => navigate('/loja/demo')}
             >
               <Eye className="h-4 w-4" /> Ver Demonstração
             </Button>

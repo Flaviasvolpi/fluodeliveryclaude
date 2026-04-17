@@ -21,7 +21,7 @@ interface EmpresaContextData {
   slug: string;
 }
 
-const EmpresaContext = createContext<EmpresaContextData | null>(null);
+export const EmpresaContext = createContext<EmpresaContextData | null>(null);
 
 export function EmpresaProvider({ children }: { children: ReactNode }) {
   const { slug } = useParams<{ slug: string }>();

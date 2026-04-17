@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -41,13 +41,14 @@ export default function Ifood() {
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [webhookMode, setWebhookMode] = useState(false);
+  const configLoaded = useRef(false);
 
   useEffect(() => {
-    if (config) {
+    if (config && !configLoaded.current) {
       setMerchantId(config.ifood_merchant_id ?? "");
       setClientId(config.ifood_client_id ?? "");
-      setClientSecret("");
       setWebhookMode(config.ifood_webhook_mode ?? false);
+      configLoaded.current = true;
     }
   }, [config]);
 
@@ -95,12 +96,14 @@ export default function Ifood() {
   });
 
   const [localMappings, setLocalMappings] = useState<Record<string, string>>({});
+  const mappingsLoaded = useRef(false);
 
   useEffect(() => {
-    if (mappings) {
+    if (mappings && !mappingsLoaded.current) {
       const map: Record<string, string> = {};
       for (const m of mappings) map[m.local_status_key] = m.ifood_action;
       setLocalMappings(map);
+      mappingsLoaded.current = true;
     }
   }, [mappings]);
 
@@ -147,12 +150,16 @@ export default function Ifood() {
   });
 
   const [localHorarios, setLocalHorarios] = useState<{ dia_semana: number; hora_abrir: string; hora_fechar: string; ativo: boolean }[]>([]);
+  const horariosLoaded = useRef(false);
 
   useEffect(() => {
-    if (horarios?.length) {
-      setLocalHorarios([...horarios]);
-    } else {
-      setLocalHorarios(DIAS_SEMANA.map((_, i) => ({ dia_semana: i, hora_abrir: "09:00", hora_fechar: "23:00", ativo: true })));
+    if (horarios !== undefined && !horariosLoaded.current) {
+      if (horarios.length) {
+        setLocalHorarios([...horarios]);
+      } else {
+        setLocalHorarios(DIAS_SEMANA.map((_, i) => ({ dia_semana: i, hora_abrir: "09:00", hora_fechar: "23:00", ativo: true })));
+      }
+      horariosLoaded.current = true;
     }
   }, [horarios]);
 
@@ -195,8 +202,20 @@ export default function Ifood() {
               <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="Client ID da aplicação" />
             </div>
             <div className="space-y-1">
-              <Label>Client Secret</Label>
-              <Input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} placeholder={config?.ifood_client_secret ? config.ifood_client_secret : "Client Secret"} />
+              <Label className="flex items-center gap-2">
+                Client Secret
+                {config?.ifood_client_secret && !clientSecret && (
+                  <span className="text-xs text-green-600 inline-flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> salvo
+                  </span>
+                )}
+              </Label>
+              <Input
+                type="password"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder={config?.ifood_client_secret ? `Salvo: ${config.ifood_client_secret} (digite para alterar)` : "Client Secret"}
+              />
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={webhookMode} onCheckedChange={setWebhookMode} />

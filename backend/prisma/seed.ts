@@ -72,12 +72,17 @@ async function main() {
   }
   console.log(`✅ Permissões padrão criadas`);
 
-  // 6. Seed default formas de pagamento
+  // 6. Seed default formas de pagamento (idempotente: só cria se não existir)
   const formas = ['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'PIX'];
   for (const nome of formas) {
-    await prisma.formaPagamento.create({
-      data: { empresaId: empresa.id, nome, exigeTroco: nome === 'Dinheiro' },
-    }).catch(() => {}); // ignore if already exists
+    const existing = await prisma.formaPagamento.findFirst({
+      where: { empresaId: empresa.id, nome },
+    });
+    if (!existing) {
+      await prisma.formaPagamento.create({
+        data: { empresaId: empresa.id, nome, exigeTroco: nome === 'Dinheiro' },
+      });
+    }
   }
   console.log(`✅ Formas de pagamento padrão criadas`);
 

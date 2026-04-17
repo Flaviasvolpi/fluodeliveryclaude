@@ -19,6 +19,27 @@ import type { Produto, ProdutoInsert, ProdutoVariante } from "@/types/database";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+interface ImportError {
+  aba: string;
+  linha: number;
+  coluna?: string;
+  valor?: string;
+  mensagem: string;
+}
+
+interface ImportResult {
+  counts: {
+    categorias: number;
+    grupos: number;
+    itens: number;
+    produtos: number;
+    variantes: number;
+    ingredientes: number;
+  };
+  errors: ImportError[];
+  warnings: ImportError[];
+}
+
 export default function Produtos() {
   const { empresaId } = useEmpresa();
   const qc = useQueryClient();
@@ -28,6 +49,7 @@ export default function Produtos() {
   const [ingredientDialogProduct, setIngredientDialogProduct] = useState<Produto | null>(null);
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: produtos } = useQuery({
@@ -169,16 +191,55 @@ export default function Produtos() {
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
 
+    // Aba 1: Categorias (opcional)
+    const catData = [
+      ["nome", "descricao", "ordem"],
+      ["Nome (obrigatório)", "Descrição (opcional)", "Número"],
+      ["Lanches", "Hambúrgueres e sanduíches", 1],
+      ["Pizzas", "Pizzas tradicionais", 2],
+      ["Bebidas", "Refrigerantes e sucos", 3],
+    ];
+    const wsCat = XLSX.utils.aoa_to_sheet(catData);
+    wsCat["!cols"] = [{ wch: 25 }, { wch: 35 }, { wch: 8 }];
+    XLSX.utils.book_append_sheet(wb, wsCat, "Categorias");
+
+    // Aba 2: Grupos de Adicionais (opcional)
+    const grpData = [
+      ["nome", "min_select", "max_select"],
+      ["Nome do grupo", "Mínimo (0 = opcional)", "Máximo"],
+      ["Borda", 0, 1],
+      ["Extras", 0, 5],
+    ];
+    const wsGrp = XLSX.utils.aoa_to_sheet(grpData);
+    wsGrp["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsGrp, "GruposAdicionais");
+
+    // Aba 3: Itens de Adicionais (opcional)
+    const itemData = [
+      ["grupo", "nome", "preco"],
+      ["Nome do grupo (igual aba GruposAdicionais)", "Nome do item", "Preço"],
+      ["Borda", "Catupiry", 5.00],
+      ["Borda", "Cheddar", 5.00],
+      ["Extras", "Bacon", 3.50],
+      ["Extras", "Ovo", 2.00],
+    ];
+    const wsItem = XLSX.utils.aoa_to_sheet(itemData);
+    wsItem["!cols"] = [{ wch: 22 }, { wch: 22 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, wsItem, "ItensAdicionais");
+
+    // Aba 4: Produtos (obrigatória)
     const prodData = [
-      ["nome", "descricao", "categoria", "preco_base", "custo_base", "possui_variantes", "ativo", "ordem"],
-      ["Nome do produto (obrigatório)", "Descrição (opcional)", "Nome da categoria", "Preço de venda", "Custo", "SIM ou NÃO", "SIM ou NÃO", "Número"],
-      ["X-Burguer", "Hambúrguer artesanal", "Lanches", 25.90, 12.00, "NÃO", "SIM", 1],
-      ["Pizza", "Pizza artesanal", "Pizzas", null, null, "SIM", "SIM", 2],
+      ["nome", "descricao", "categoria", "preco_base", "custo_base", "possui_variantes", "ativo", "ordem", "grupos_adicionais", "ingredientes"],
+      ["Nome (obrigatório)", "Descrição (opcional)", "Nome da categoria", "Preço de venda", "Custo", "SIM ou NÃO", "SIM ou NÃO", "Número", "Grupos separados por ;", "Ingredientes separados por ;"],
+      ["X-Burguer", "Hambúrguer artesanal", "Lanches", 25.90, 12.00, "NÃO", "SIM", 1, "Extras", "Pão;Carne;Queijo;Alface;Tomate"],
+      ["Pizza", "Pizza artesanal", "Pizzas", null, null, "SIM", "SIM", 2, "Borda;Extras", "Massa;Molho;Queijo"],
+      ["Coca-Cola 350ml", "", "Bebidas", 6.00, 3.00, "NÃO", "SIM", 3, "", ""],
     ];
     const wsProd = XLSX.utils.aoa_to_sheet(prodData);
-    wsProd["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 10 }];
+    wsProd["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 8 }, { wch: 8 }, { wch: 25 }, { wch: 35 }];
     XLSX.utils.book_append_sheet(wb, wsProd, "Produtos");
 
+    // Aba 5: Variantes (opcional — só para produtos com possui_variantes=SIM)
     const varData = [
       ["produto_nome", "variante_nome", "preco_venda", "custo", "sku", "ativo", "ordem"],
       ["Nome do produto (igual aba Produtos)", "Nome da variante", "Preço de venda", "Custo", "SKU (opcional)", "SIM ou NÃO", "Número"],
@@ -190,111 +251,321 @@ export default function Produtos() {
     wsVar["!cols"] = [{ wch: 25 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, wsVar, "Variantes");
 
-    XLSX.writeFile(wb, "modelo_importacao_produtos.xlsx");
+    XLSX.writeFile(wb, "modelo_importacao_completa.xlsx");
   };
 
   const handleImportFile = async (file: File) => {
     setImporting(true);
+    const errors: ImportError[] = [];
+    const warnings: ImportError[] = [];
+    const counts = { categorias: 0, grupos: 0, itens: 0, produtos: 0, variantes: 0, ingredientes: 0 };
+
+    const parseNum = (val: any, aba: string, linha: number, coluna: string): number | null => {
+      if (val === null || val === undefined || val === "") return null;
+      const str = String(val).replace(",", ".").trim();
+      const n = Number(str);
+      if (isNaN(n)) {
+        errors.push({ aba, linha, coluna, valor: str, mensagem: `Valor "${str}" não é um número válido` });
+        return null;
+      }
+      return n;
+    };
+
     try {
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
 
-      // Parse products sheet (skip header + description row)
-      const prodSheet = wb.Sheets["Produtos"] || wb.Sheets[wb.SheetNames[0]];
-      const prodRows: any[] = XLSX.utils.sheet_to_json(prodSheet, { range: 1 });
+      const readSheet = (name: string): any[] => {
+        const sheet = wb.Sheets[name];
+        if (!sheet) return [];
+        // Lê como array de arrays: linha 0 = cabeçalhos reais, linha 1 = descrições (descartada), linha 2+ = dados
+        const aoa: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, blankrows: false });
+        if (aoa.length < 3) return [];
+        const headers = (aoa[0] as any[]).map((h) => String(h ?? "").trim());
+        return aoa.slice(2).map((row) => {
+          const obj: any = {};
+          headers.forEach((h, i) => {
+            if (h) obj[h] = row[i] ?? null;
+          });
+          return obj;
+        }).filter((r) => Object.values(r).some((v) => v !== null && v !== ""));
+      };
 
-      if (!prodRows.length) {
-        toast.error("Planilha vazia ou sem dados na aba 'Produtos'.");
+      const catRows = readSheet("Categorias");
+      const grpRows = readSheet("GruposAdicionais");
+      const itemRows = readSheet("ItensAdicionais");
+      const prodRows = readSheet("Produtos");
+      const varRows = readSheet("Variantes");
+
+      if (!prodRows.length && !catRows.length && !grpRows.length) {
+        toast.error("Nenhuma aba do modelo contém dados.");
         return;
       }
 
-      // Parse variants sheet
-      let varRows: any[] = [];
-      const varSheet = wb.Sheets["Variantes"] || wb.Sheets[wb.SheetNames[1]];
-      if (varSheet) {
-        varRows = XLSX.utils.sheet_to_json(varSheet, { range: 1 });
+      // ---------- 1. CATEGORIAS ----------
+      const { data: existingCats } = await api.get(`/empresas/${empresaId}/categorias`);
+      const catMap = new Map<string, string>(
+        (existingCats ?? []).map((c: any) => [c.nome.toLowerCase().trim(), c.id])
+      );
+
+      for (let i = 0; i < catRows.length; i++) {
+        const row = catRows[i];
+        const linha = i + 3;
+        const nome = String(row.nome ?? "").trim();
+        if (!nome) continue;
+        const key = nome.toLowerCase();
+        if (catMap.has(key)) {
+          warnings.push({ aba: "Categorias", linha, mensagem: `Categoria "${nome}" já existe, reaproveitada` });
+          continue;
+        }
+        try {
+          const { data: created } = await api.post(`/empresas/${empresaId}/categorias`, {
+            empresa_id: empresaId,
+            nome,
+            descricao: row.descricao ? String(row.descricao) : null,
+            ordem: Number(row.ordem ?? 0),
+            ativo: true,
+          });
+          catMap.set(key, created.id);
+          counts.categorias++;
+        } catch (e: any) {
+          errors.push({ aba: "Categorias", linha, mensagem: `Falha ao criar "${nome}": ${e.response?.data?.message || e.message}` });
+        }
       }
 
-      // Match categories by name
-      const { data: cats } = await api.get(`/empresas/${empresaId}/categorias`);
-      const catMap = new Map((cats ?? []).map((c) => [c.nome.toLowerCase().trim(), c.id]));
+      // ---------- 2. GRUPOS DE ADICIONAIS ----------
+      const { data: existingGrupos } = await api.get(`/empresas/${empresaId}/adicionais/grupos`);
+      const grpMap = new Map<string, string>(
+        (existingGrupos ?? []).map((g: any) => [g.nome.toLowerCase().trim(), g.id])
+      );
 
-      let imported = 0;
-      let errors: string[] = [];
-
-      for (const row of prodRows) {
+      for (let i = 0; i < grpRows.length; i++) {
+        const row = grpRows[i];
+        const linha = i + 3;
         const nome = String(row.nome ?? "").trim();
-        if (!nome) { errors.push("Linha sem nome ignorada"); continue; }
+        if (!nome) continue;
+        const key = nome.toLowerCase();
+        if (grpMap.has(key)) {
+          warnings.push({ aba: "GruposAdicionais", linha, mensagem: `Grupo "${nome}" já existe, reaproveitado` });
+          continue;
+        }
+        const min = parseNum(row.min_select, "GruposAdicionais", linha, "min_select") ?? 0;
+        const max = parseNum(row.max_select, "GruposAdicionais", linha, "max_select") ?? 1;
+        try {
+          const { data: created } = await api.post(`/empresas/${empresaId}/adicionais/grupos`, {
+            empresa_id: empresaId,
+            nome,
+            min_select: min,
+            max_select: max,
+            minSelect: min,
+            maxSelect: max,
+          });
+          grpMap.set(key, created.id);
+          counts.grupos++;
+        } catch (e: any) {
+          errors.push({ aba: "GruposAdicionais", linha, mensagem: `Falha ao criar "${nome}": ${e.response?.data?.message || e.message}` });
+        }
+      }
+
+      // ---------- 3. ITENS DE ADICIONAIS ----------
+      for (let i = 0; i < itemRows.length; i++) {
+        const row = itemRows[i];
+        const linha = i + 3;
+        const grupoNome = String(row.grupo ?? "").trim();
+        const nome = String(row.nome ?? "").trim();
+        if (!grupoNome || !nome) {
+          if (nome || grupoNome) errors.push({ aba: "ItensAdicionais", linha, mensagem: "Linha precisa de 'grupo' e 'nome'" });
+          continue;
+        }
+        const grupoId = grpMap.get(grupoNome.toLowerCase());
+        if (!grupoId) {
+          errors.push({ aba: "ItensAdicionais", linha, coluna: "grupo", valor: grupoNome, mensagem: `Grupo "${grupoNome}" não existe (adicione na aba GruposAdicionais)` });
+          continue;
+        }
+        const preco = parseNum(row.preco, "ItensAdicionais", linha, "preco") ?? 0;
+        try {
+          await api.post(`/empresas/${empresaId}/adicionais/itens`, {
+            empresa_id: empresaId,
+            grupo_id: grupoId,
+            grupoId: grupoId,
+            nome,
+            preco,
+          });
+          counts.itens++;
+        } catch (e: any) {
+          errors.push({ aba: "ItensAdicionais", linha, mensagem: `Falha ao criar "${nome}": ${e.response?.data?.message || e.message}` });
+        }
+      }
+
+      // ---------- 4. PRODUTOS ----------
+      const { data: existingProds } = await api.get(`/empresas/${empresaId}/produtos`);
+      const prodMap = new Map<string, string>(
+        (existingProds ?? []).map((p: any) => [p.nome.toLowerCase().trim(), p.id])
+      );
+
+      for (let i = 0; i < prodRows.length; i++) {
+        const row = prodRows[i];
+        const linha = i + 3;
+        const nome = String(row.nome ?? "").trim();
+        if (!nome) {
+          errors.push({ aba: "Produtos", linha, coluna: "nome", mensagem: "Nome obrigatório" });
+          continue;
+        }
+        if (prodMap.has(nome.toLowerCase())) {
+          warnings.push({ aba: "Produtos", linha, mensagem: `Produto "${nome}" já existe, ignorado` });
+          continue;
+        }
 
         const possuiVariantes = parseBool(row.possui_variantes);
         const ativo = parseBool(row.ativo ?? "SIM");
-        const categoriaName = String(row.categoria ?? "").trim().toLowerCase();
-        const categoriaId = catMap.get(categoriaName) || null;
 
-        if (categoriaName && !categoriaId) {
-          errors.push(`Categoria "${row.categoria}" não encontrada para "${nome}"`);
+        // Categoria: resolve ou cria auto
+        const categoriaName = String(row.categoria ?? "").trim();
+        let categoriaId: string | null = null;
+        if (categoriaName) {
+          const key = categoriaName.toLowerCase();
+          categoriaId = catMap.get(key) ?? null;
+          if (!categoriaId) {
+            try {
+              const { data: created } = await api.post(`/empresas/${empresaId}/categorias`, {
+                empresa_id: empresaId, nome: categoriaName, ativo: true, ordem: 0,
+              });
+              categoriaId = created.id;
+              catMap.set(key, created.id);
+              counts.categorias++;
+              warnings.push({ aba: "Produtos", linha, coluna: "categoria", valor: categoriaName, mensagem: `Categoria "${categoriaName}" criada automaticamente` });
+            } catch (e: any) {
+              errors.push({ aba: "Produtos", linha, coluna: "categoria", valor: categoriaName, mensagem: `Falha ao criar categoria: ${e.response?.data?.message || e.message}` });
+            }
+          }
         }
 
-        const precoStr = String(row.preco_base ?? "").replace(",", ".");
-        const custoStr = String(row.custo_base ?? "").replace(",", ".");
+        const precoBase = possuiVariantes ? null : parseNum(row.preco_base, "Produtos", linha, "preco_base");
+        const custoBase = possuiVariantes ? null : parseNum(row.custo_base, "Produtos", linha, "custo_base");
 
-        let novoProd: any;
+        let novoProdId: string;
         try {
-          const { data } = await api.post(`/empresas/${empresaId}/produtos`, {
+          const { data: created } = await api.post(`/empresas/${empresaId}/produtos`, {
             empresa_id: empresaId,
             nome,
             descricao: row.descricao ? String(row.descricao) : null,
             categoria_id: categoriaId,
             possui_variantes: possuiVariantes,
-            preco_base: possuiVariantes ? null : precoStr ? Number(precoStr) : null,
-            custo_base: possuiVariantes ? null : custoStr ? Number(custoStr) : null,
+            preco_base: precoBase,
+            custo_base: custoBase,
             ativo,
             ordem: Number(row.ordem ?? 0),
           });
-          novoProd = data;
-        } catch (insertErr: any) {
-          errors.push(`Erro ao inserir "${nome}": ${insertErr.message}`);
+          novoProdId = created.id;
+          prodMap.set(nome.toLowerCase(), novoProdId);
+          counts.produtos++;
+        } catch (e: any) {
+          errors.push({ aba: "Produtos", linha, coluna: "nome", valor: nome, mensagem: `Falha ao criar produto: ${e.response?.data?.message || e.message}` });
           continue;
         }
 
-        // Insert variants for this product
-        if (possuiVariantes && novoProd) {
-          const prodVariants = varRows.filter(
-            (v) => String(v.produto_nome ?? "").trim().toLowerCase() === nome.toLowerCase()
-          );
-          if (prodVariants.length) {
-            const varInserts = prodVariants.map((v) => ({
-              produto_id: novoProd.id,
-              empresa_id: empresaId,
-              nome: String(v.variante_nome ?? "").trim(),
-              preco_venda: Number(String(v.preco_venda ?? "0").replace(",", ".")),
-              custo: Number(String(v.custo ?? "0").replace(",", ".")),
-              sku: v.sku ? String(v.sku) : null,
-              ativo: parseBool(v.ativo ?? "SIM"),
-              ordem: Number(v.ordem ?? 0),
-            }));
+        // Vincular grupos de adicionais (por nome, separados por ;)
+        const gruposStr = String(row.grupos_adicionais ?? "").trim();
+        if (gruposStr) {
+          const nomes = gruposStr.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+          for (const gn of nomes) {
+            const gid = grpMap.get(gn.toLowerCase());
+            if (!gid) {
+              errors.push({ aba: "Produtos", linha, coluna: "grupos_adicionais", valor: gn, mensagem: `Grupo "${gn}" não existe` });
+              continue;
+            }
             try {
-              await api.post(`/empresas/${empresaId}/produto-variantes`, varInserts);
-            } catch (varErr: any) {
-              errors.push(`Erro ao inserir variantes de "${nome}": ${varErr.message}`);
+              await api.post(`/empresas/${empresaId}/produto-adicionais-grupos`, {
+                produto_id: novoProdId,
+                grupo_id: gid,
+              });
+            } catch (e: any) {
+              errors.push({ aba: "Produtos", linha, coluna: "grupos_adicionais", valor: gn, mensagem: `Falha ao vincular grupo: ${e.response?.data?.message || e.message}` });
             }
           }
         }
 
-        imported++;
+        // Ingredientes (por nome, separados por ;)
+        const ingStr = String(row.ingredientes ?? "").trim();
+        if (ingStr) {
+          const nomes = ingStr.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+          for (let idx = 0; idx < nomes.length; idx++) {
+            try {
+              await api.post(`/empresas/${empresaId}/produto-ingredientes`, {
+                produto_id: novoProdId,
+                nome: nomes[idx],
+                removivel: true,
+                ordem: idx,
+                ativo: true,
+              });
+              counts.ingredientes++;
+            } catch (e: any) {
+              errors.push({ aba: "Produtos", linha, coluna: "ingredientes", valor: nomes[idx], mensagem: `Falha ao criar ingrediente: ${e.response?.data?.message || e.message}` });
+            }
+          }
+        }
+      }
+
+      // ---------- 5. VARIANTES ----------
+      for (let i = 0; i < varRows.length; i++) {
+        const row = varRows[i];
+        const linha = i + 3;
+        const prodNome = String(row.produto_nome ?? "").trim();
+        const varNome = String(row.variante_nome ?? "").trim();
+        if (!prodNome && !varNome) continue;
+        if (!prodNome) {
+          errors.push({ aba: "Variantes", linha, coluna: "produto_nome", mensagem: "Nome do produto obrigatório" });
+          continue;
+        }
+        if (!varNome) {
+          errors.push({ aba: "Variantes", linha, coluna: "variante_nome", mensagem: "Nome da variante obrigatório" });
+          continue;
+        }
+        const prodId = prodMap.get(prodNome.toLowerCase());
+        if (!prodId) {
+          errors.push({ aba: "Variantes", linha, coluna: "produto_nome", valor: prodNome, mensagem: `Produto "${prodNome}" não encontrado na aba Produtos` });
+          continue;
+        }
+        const preco = parseNum(row.preco_venda, "Variantes", linha, "preco_venda") ?? 0;
+        const custo = parseNum(row.custo, "Variantes", linha, "custo") ?? 0;
+        try {
+          await api.post(`/empresas/${empresaId}/produto-variantes`, [{
+            produto_id: prodId,
+            empresa_id: empresaId,
+            nome: varNome,
+            preco_venda: preco,
+            custo,
+            sku: row.sku ? String(row.sku) : null,
+            ativo: parseBool(row.ativo ?? "SIM"),
+            ordem: Number(row.ordem ?? 0),
+          }]);
+          counts.variantes++;
+        } catch (e: any) {
+          errors.push({ aba: "Variantes", linha, mensagem: `Falha ao criar variante: ${e.response?.data?.message || e.message}` });
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["admin-produtos", empresaId] });
+      qc.invalidateQueries({ queryKey: ["admin-categorias", empresaId] });
+      qc.invalidateQueries({ queryKey: ["admin-adicionais-grupos", empresaId] });
 
-      if (errors.length) {
-        toast.warning(`${imported} produto(s) importado(s) com ${errors.length} aviso(s).`);
-        console.warn("Erros de importação:", errors);
+      const total = counts.categorias + counts.grupos + counts.itens + counts.produtos + counts.variantes + counts.ingredientes;
+      if (errors.length === 0 && warnings.length === 0) {
+        toast.success(`Importação concluída: ${total} registro(s) criado(s).`);
+        setImportDialogOpen(false);
       } else {
-        toast.success(`${imported} produto(s) importado(s) com sucesso!`);
+        setImportResult({ counts, errors, warnings });
+        setImportDialogOpen(false);
       }
-      setImportDialogOpen(false);
     } catch (err: any) {
-      toast.error("Erro ao processar planilha: " + (err.message || "erro desconhecido"));
+      console.error("[Importação] Erro fatal:", err);
+      const msg = err.response?.data?.message || err.message || "erro desconhecido";
+      toast.error("Erro ao processar planilha: " + msg);
+      setImportResult({
+        counts,
+        errors: [...errors, { aba: "(processamento)", linha: 0, mensagem: String(msg) }],
+        warnings,
+      });
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -424,15 +695,22 @@ export default function Produtos() {
 
       {/* Import dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Importar Produtos via Excel</DialogTitle>
+            <DialogTitle>Importar Cardápio Completo via Excel</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Importe seus produtos em massa a partir de uma planilha Excel. 
-              Baixe o modelo abaixo, preencha com seus dados e envie o arquivo.
+              Baixe o modelo, preencha as abas que desejar (todas opcionais exceto <b>Produtos</b>) e envie o arquivo. Referências faltantes (ex: categoria mencionada num produto mas não na aba Categorias) são criadas automaticamente.
             </p>
+            <div className="rounded-lg border p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">Abas do modelo:</p>
+              <p>• <b>Categorias</b> — opcional</p>
+              <p>• <b>GruposAdicionais</b> — opcional (ex: Borda, Extras)</p>
+              <p>• <b>ItensAdicionais</b> — opcional (itens de cada grupo)</p>
+              <p>• <b>Produtos</b> — obrigatória</p>
+              <p>• <b>Variantes</b> — só se o produto tiver <code>possui_variantes = SIM</code></p>
+            </div>
             <div className="rounded-lg border border-dashed p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
@@ -458,9 +736,75 @@ export default function Produtos() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Formatos aceitos: .xlsx, .xls • As categorias devem estar cadastradas antes da importação.
+              Formatos aceitos: .xlsx, .xls • Produtos/categorias/grupos já existentes (mesmo nome) são reaproveitados, não duplicados.
             </p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import result dialog (shows after import finishes with errors/warnings) */}
+      <Dialog open={!!importResult} onOpenChange={(o) => !o && setImportResult(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Resultado da Importação</DialogTitle>
+          </DialogHeader>
+          {importResult && (
+            <div className="space-y-4 overflow-y-auto">
+              {/* Resumo */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Categorias:</span> <b>{importResult.counts.categorias}</b></div>
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Grupos:</span> <b>{importResult.counts.grupos}</b></div>
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Itens:</span> <b>{importResult.counts.itens}</b></div>
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Produtos:</span> <b>{importResult.counts.produtos}</b></div>
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Variantes:</span> <b>{importResult.counts.variantes}</b></div>
+                <div className="rounded-lg border p-2"><span className="text-muted-foreground">Ingredientes:</span> <b>{importResult.counts.ingredientes}</b></div>
+              </div>
+
+              {/* Erros */}
+              {importResult.errors.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 text-red-600">
+                    ❌ {importResult.errors.length} erro(s) — estes itens NÃO foram criados:
+                  </h3>
+                  <div className="rounded-lg border border-red-200 dark:border-red-900 divide-y text-xs max-h-64 overflow-y-auto">
+                    {importResult.errors.map((e, idx) => (
+                      <div key={idx} className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30">
+                        <div className="font-mono text-red-700 dark:text-red-400">
+                          Aba <b>{e.aba}</b> · Linha <b>{e.linha}</b>
+                          {e.coluna && <> · Coluna <b>{e.coluna}</b></>}
+                          {e.valor && <> · Valor: <code className="bg-red-100 dark:bg-red-900 px-1 rounded">{e.valor}</code></>}
+                        </div>
+                        <div className="mt-1">{e.mensagem}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Avisos */}
+              {importResult.warnings.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 text-yellow-600">
+                    ⚠️ {importResult.warnings.length} aviso(s):
+                  </h3>
+                  <div className="rounded-lg border border-yellow-200 dark:border-yellow-900 divide-y text-xs max-h-40 overflow-y-auto">
+                    {importResult.warnings.map((w, idx) => (
+                      <div key={idx} className="p-2 hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+                        <span className="font-mono text-yellow-700 dark:text-yellow-400">
+                          Aba <b>{w.aba}</b> · Linha <b>{w.linha}</b>:
+                        </span>{" "}
+                        {w.mensagem}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setImportResult(null)}>Fechar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </AdminLayout>
@@ -606,7 +950,7 @@ function VariantesDialog({
     queryKey: ["admin-variantes", produto.id],
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresaId}/produto-variantes`);
-      return data;
+      return (data ?? []).filter((v: any) => (v.produto_id ?? v.produtoId) === produto.id);
     },
   });
 
@@ -769,7 +1113,7 @@ function IngredientesDialog({
     queryKey: ["admin-ingredientes", produto.id],
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresaId}/produto-ingredientes`);
-      return data;
+      return (data ?? []).filter((ing: any) => (ing.produto_id ?? ing.produtoId) === produto.id);
     },
   });
 
