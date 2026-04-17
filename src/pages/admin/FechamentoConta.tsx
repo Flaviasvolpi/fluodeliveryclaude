@@ -34,6 +34,7 @@ export default function FechamentoConta() {
   const [splitMode, setSplitMode] = useState<SplitMode>("unica");
   const [numPessoas, setNumPessoas] = useState(2);
   const [pessoas, setPessoas] = useState<PessoaPagamento[]>([]);
+  const [incluirTaxaServico, setIncluirTaxaServico] = useState(true);
 
   // Fetch open contas
   const { data: contas, isLoading } = useQuery({
@@ -81,38 +82,50 @@ export default function FechamentoConta() {
     return pedidosConta.reduce((sum: number, p: any) => sum + Number(p.taxa_servico ?? 0), 0);
   }, [pedidosConta]);
   const subtotalSemTaxa = contaTotal - taxaServicoTotal;
+  const totalFinal = incluirTaxaServico ? contaTotal : subtotalSemTaxa;
 
-  // Quando a conta selecionada muda e o total fica disponível, inicializa pessoas no modo atual
+  // Quando a conta selecionada muda, o total fica disponível ou o cliente ativa/desativa
+  // a taxa de serviço, recalcula as pessoas no modo atual
   useEffect(() => {
-    if (!selectedContaId || contaTotal <= 0) return;
+    if (!selectedContaId || totalFinal <= 0) return;
     if (splitMode === "unica") {
-      setPessoas([{ label: "Pagamento único", valor: contaTotal, forma_pagamento_id: null }]);
+      setPessoas((prev) => [{
+        label: "Pagamento único",
+        valor: totalFinal,
+        forma_pagamento_id: prev[0]?.forma_pagamento_id ?? null,
+      }]);
     } else if (splitMode === "igual") {
-      const val = Math.round((contaTotal / numPessoas) * 100) / 100;
-      const diff = Math.round((contaTotal - val * numPessoas) * 100) / 100;
-      setPessoas(
+      const val = Math.round((totalFinal / numPessoas) * 100) / 100;
+      const diff = Math.round((totalFinal - val * numPessoas) * 100) / 100;
+      setPessoas((prev) =>
         Array.from({ length: numPessoas }, (_, i) => ({
           label: `Pessoa ${i + 1}`,
           valor: i === 0 ? val + diff : val,
-          forma_pagamento_id: null,
+          forma_pagamento_id: prev[i]?.forma_pagamento_id ?? null,
         }))
       );
     } else if (splitMode === "valor") {
-      setPessoas([{ label: "Pessoa 1", valor: contaTotal, forma_pagamento_id: null }]);
+      setPessoas((prev) => [{
+        label: "Pessoa 1",
+        valor: totalFinal,
+        forma_pagamento_id: prev[0]?.forma_pagamento_id ?? null,
+      }]);
     } else if (splitMode === "item") {
-      setPessoas([{ label: "Pessoa 1", valor: 0, forma_pagamento_id: null, itemIds: [] }]);
+      // No modo item, mantém a distribuição mas ajusta o valor proporcionalmente
+      // se a taxa foi removida (itens podem reduzir seu valor total final)
+      // → deixamos o usuário recalcular manualmente re-atribuindo itens
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedContaId, contaTotal]);
+  }, [selectedContaId, totalFinal]);
 
   // Initialize pessoas when split mode changes
   const initPessoas = (mode: SplitMode) => {
     setSplitMode(mode);
     if (mode === "unica") {
-      setPessoas([{ label: "Pagamento único", valor: contaTotal, forma_pagamento_id: null }]);
+      setPessoas([{ label: "Pagamento único", valor: totalFinal, forma_pagamento_id: null }]);
     } else if (mode === "igual") {
-      const val = Math.round((contaTotal / numPessoas) * 100) / 100;
-      const diff = Math.round((contaTotal - val * numPessoas) * 100) / 100;
+      const val = Math.round((totalFinal / numPessoas) * 100) / 100;
+      const diff = Math.round((totalFinal - val * numPessoas) * 100) / 100;
       setPessoas(
         Array.from({ length: numPessoas }, (_, i) => ({
           label: `Pessoa ${i + 1}`,
@@ -122,7 +135,7 @@ export default function FechamentoConta() {
       );
     } else if (mode === "valor") {
       setPessoas([
-        { label: "Pessoa 1", valor: contaTotal, forma_pagamento_id: null },
+        { label: "Pessoa 1", valor: totalFinal, forma_pagamento_id: null },
       ]);
     } else if (mode === "item") {
       setPessoas([{ label: "Pessoa 1", valor: 0, forma_pagamento_id: null, itemIds: [] }]);
@@ -131,8 +144,8 @@ export default function FechamentoConta() {
 
   const recalcEqualSplit = (n: number) => {
     setNumPessoas(n);
-    const val = Math.round((contaTotal / n) * 100) / 100;
-    const diff = Math.round((contaTotal - val * n) * 100) / 100;
+    const val = Math.round((totalFinal / n) * 100) / 100;
+    const diff = Math.round((totalFinal - val * n) * 100) / 100;
     setPessoas(
       Array.from({ length: n }, (_, i) => ({
         label: `Pessoa ${i + 1}`,
@@ -143,7 +156,7 @@ export default function FechamentoConta() {
   };
 
   const totalPago = pessoas.reduce((sum, p) => sum + (p.valor || 0), 0);
-  const restante = Math.round((contaTotal - totalPago) * 100) / 100;
+  const restante = Math.round((totalFinal - totalPago) * 100) / 100;
 
   const addPessoa = () => {
     setPessoas([...pessoas, { label: `Pessoa ${pessoas.length + 1}`, valor: 0, forma_pagamento_id: null, itemIds: splitMode === "item" ? [] : undefined }]);
@@ -174,10 +187,11 @@ export default function FechamentoConta() {
     mutationFn: async () => {
       if (!selectedContaId || !selectedConta) throw new Error("Conta não selecionada");
       if (splitMode !== "item" && Math.abs(restante) > 0.01) throw new Error("O valor total dos pagamentos não confere");
-      if (pessoas.some((p) => !p.forma_pagamento_id)) throw new Error("Selecione a forma de pagamento para todas as pessoas");
+      if (pessoas.some((p) => (p.valor ?? 0) > 0 && !p.forma_pagamento_id)) throw new Error("Selecione a forma de pagamento para as pessoas com valor");
 
-      // Insert payments
+      // Insert payments (ignora pessoas com valor 0)
       for (const p of pessoas) {
+        if ((p.valor ?? 0) <= 0) continue;
         await api.post(`/empresas/${empresaId}/contas/pagamentos`, {
           empresa_id: empresaId,
           conta_id: selectedContaId,
@@ -187,8 +201,10 @@ export default function FechamentoConta() {
         });
       }
 
-      // Close conta
-      await api.post(`/empresas/${empresaId}/contas/${selectedContaId}/fechar`);
+      // Close conta (passa flag pro backend zerar taxa de serviço se cliente recusou)
+      await api.post(`/empresas/${empresaId}/contas/${selectedContaId}/fechar`, {
+        incluirTaxaServico,
+      });
 
       // Update pedidos pagamento_status
       const pedidoIds = pedidosConta?.map((p) => p.id) ?? [];
@@ -208,6 +224,7 @@ export default function FechamentoConta() {
 
       if (sessao) {
         for (const p of pessoas) {
+          if ((p.valor ?? 0) <= 0) continue;
           await api.post(`/empresas/${empresaId}/caixa/recebimentos`, {
             empresa_id: empresaId,
             caixa_sessao_id: sessao.id,
@@ -224,6 +241,7 @@ export default function FechamentoConta() {
       setSelectedContaId(null);
       setPessoas([]);
       setSplitMode("unica");
+      setIncluirTaxaServico(true);
       queryClient.invalidateQueries({ queryKey: ["contas-abertas"] });
       queryClient.invalidateQueries({ queryKey: ["caixa-recebimentos"] });
     },
@@ -273,18 +291,26 @@ export default function FechamentoConta() {
               {taxaServicoTotal > 0 && (
                 <>
                   <Separator />
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Subtotal</span>
                       <span>{formatBRL(subtotalSemTaxa)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Taxa de serviço</span>
-                      <span className="font-medium">{formatBRL(taxaServicoTotal)}</span>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={incluirTaxaServico}
+                          onCheckedChange={(v) => setIncluirTaxaServico(!!v)}
+                        />
+                        <span>Incluir taxa de serviço</span>
+                      </label>
+                      <span className={incluirTaxaServico ? "font-medium" : "line-through text-muted-foreground"}>
+                        {formatBRL(taxaServicoTotal)}
+                      </span>
                     </div>
-                    <div className="flex justify-between font-bold pt-1">
+                    <div className="flex justify-between font-bold pt-1 border-t">
                       <span>Total</span>
-                      <span className="text-primary">{formatBRL(contaTotal)}</span>
+                      <span className="text-primary">{formatBRL(totalFinal)}</span>
                     </div>
                   </div>
                 </>
@@ -423,7 +449,7 @@ export default function FechamentoConta() {
                   }
                   onClick={() => closeConta.mutate()}
                 >
-                  {closeConta.isPending ? "Fechando..." : `Fechar Conta · ${formatBRL(contaTotal)}`}
+                  {closeConta.isPending ? "Fechando..." : `Fechar Conta · ${formatBRL(totalFinal)}`}
                 </Button>
               </CardContent>
             </Card>

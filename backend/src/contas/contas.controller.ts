@@ -23,7 +23,11 @@ export class ContasController {
   }
 
   @Post(':id/fechar')
-  fecharConta(@Param('empresaId') empresaId: string, @Param('id') id: string) {
-    return this.service.fecharConta(id, empresaId);
+  fecharConta(
+    @Param('empresaId') empresaId: string,
+    @Param('id') id: string,
+    @Body() body?: { incluirTaxaServico?: boolean },
+  ) {
+    return this.service.fecharConta(id, empresaId, body);
   }
 }

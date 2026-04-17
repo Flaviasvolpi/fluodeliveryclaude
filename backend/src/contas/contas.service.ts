@@ -47,12 +47,38 @@ export class ContasService {
     });
   }
 
-  async fecharConta(id: string, empresaId: string) {
+  async fecharConta(id: string, empresaId: string, opts?: { incluirTaxaServico?: boolean }) {
     const conta = await this.prisma.conta.findFirst({
       where: { id, empresaId, status: 'aberta' },
       include: { pagamentos: true },
     });
     if (!conta) throw new NotFoundException('Conta não encontrada ou já fechada');
+
+    // Se cliente recusou a taxa de serviço, zera em todos os pedidos da conta e recalcula o total
+    if (opts?.incluirTaxaServico === false) {
+      const pedidos = await this.prisma.pedido.findMany({ where: { contaId: id, empresaId } });
+      let totalDiff = new Prisma.Decimal(0);
+      for (const p of pedidos) {
+        const taxa = new Prisma.Decimal(p.taxaServico);
+        if (taxa.gt(0)) {
+          totalDiff = totalDiff.plus(taxa);
+          await this.prisma.pedido.update({
+            where: { id: p.id },
+            data: {
+              taxaServico: new Prisma.Decimal(0),
+              total: new Prisma.Decimal(p.total).minus(taxa),
+            },
+          });
+        }
+      }
+      if (totalDiff.gt(0)) {
+        await this.prisma.conta.update({
+          where: { id },
+          data: { total: new Prisma.Decimal(conta.total).minus(totalDiff) },
+        });
+        conta.total = new Prisma.Decimal(conta.total).minus(totalDiff);
+      }
+    }
 
     const totalPago = conta.pagamentos.reduce(
       (sum, p) => sum.plus(p.valor),

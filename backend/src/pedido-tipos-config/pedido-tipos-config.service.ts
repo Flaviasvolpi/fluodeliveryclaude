@@ -43,6 +43,7 @@ export class PedidoTiposConfigService {
           exigeReferencia: row.exigeReferencia,
           referenciaAuto: row.referenciaAuto,
           referenciaLabel: row.referenciaLabel,
+          cobraTaxaServico: row.cobraTaxaServico ?? false,
         },
       });
       created.push(item);
