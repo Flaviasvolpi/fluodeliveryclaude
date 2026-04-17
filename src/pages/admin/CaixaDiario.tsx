@@ -163,7 +163,7 @@ export default function CaixaDiario() {
       await api.post(`/empresas/${empresaId}/caixa/recebimentos`, {
         empresa_id: empresaId,
         caixa_sessao_id: sessao.id,
-        valor: tipo === "sangria" ? -sangriaValor : sangriaValor,
+        valor: sangriaValor,
         tipo_origem: tipo,
       });
     },
@@ -207,22 +207,25 @@ export default function CaixaDiario() {
     return Array.from(map.values());
   }, [recebimentos]);
 
+  // Valores sempre positivos no DB; o tipo_origem define se entra ou sai do caixa.
   const totalRecebido = useMemo(() => {
     if (!recebimentos) return 0;
-    return recebimentos.reduce((s, r) => s + r.valor, 0);
+    return recebimentos
+      .filter((r) => r.tipo_origem !== "sangria" && r.tipo_origem !== "reforco")
+      .reduce((s, r) => s + Number(r.valor), 0);
   }, [recebimentos]);
 
   const totalSangrias = useMemo(() => {
     if (!recebimentos) return 0;
-    return recebimentos.filter((r) => r.tipo_origem === "sangria").reduce((s, r) => s + r.valor, 0);
+    return recebimentos.filter((r) => r.tipo_origem === "sangria").reduce((s, r) => s + Number(r.valor), 0);
   }, [recebimentos]);
 
   const totalReforcos = useMemo(() => {
     if (!recebimentos) return 0;
-    return recebimentos.filter((r) => r.tipo_origem === "reforco").reduce((s, r) => s + r.valor, 0);
+    return recebimentos.filter((r) => r.tipo_origem === "reforco").reduce((s, r) => s + Number(r.valor), 0);
   }, [recebimentos]);
 
-  const totalEsperado = (sessao?.valor_abertura ?? 0) + totalRecebido;
+  const totalEsperado = Number(sessao?.valor_abertura ?? 0) + totalRecebido + totalReforcos - totalSangrias;
 
   // Helper: nome do entregador por ID
   const getEntregadorNome = (id: string) => {
@@ -374,13 +377,13 @@ export default function CaixaDiario() {
                   <Card>
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground">Total Recebido</p>
-                      <p className="text-xl font-bold text-primary">{formatBRL(totalRecebido - totalSangrias - totalReforcos)}</p>
+                      <p className="text-xl font-bold text-primary">{formatBRL(totalRecebido)}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground">Sangrias</p>
-                      <p className="text-xl font-bold text-destructive">{formatBRL(Math.abs(totalSangrias))}</p>
+                      <p className="text-xl font-bold text-destructive">{formatBRL(totalSangrias)}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -602,12 +605,12 @@ export default function CaixaDiario() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Recebimentos (vendas):</span>
-                      <span className="text-primary font-medium">{formatBRL(totalRecebido - totalSangrias - totalReforcos)}</span>
+                      <span className="text-primary font-medium">{formatBRL(totalRecebido)}</span>
                     </div>
                     {totalSangrias !== 0 && (
                       <div className="flex justify-between text-sm">
                         <span>Sangrias:</span>
-                        <span className="text-destructive">{formatBRL(totalSangrias)}</span>
+                        <span className="text-destructive">{formatBRL(-totalSangrias)}</span>
                       </div>
                     )}
                     {totalReforcos !== 0 && (
