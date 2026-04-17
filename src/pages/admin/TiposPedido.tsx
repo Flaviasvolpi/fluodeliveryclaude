@@ -43,6 +43,7 @@ export default function TiposPedido() {
         exige_referencia: t.exige_referencia,
         referencia_auto: t.referencia_auto,
         referencia_label: t.referencia_label,
+        cobra_taxa_servico: t.cobra_taxa_servico,
       }));
       await api.put(`/empresas/${empresaId}/pedido-tipos-config/bulk`, rows);
     },
@@ -62,6 +63,7 @@ export default function TiposPedido() {
       tipo_key: key, label, ativo: true, ordem: prev.length,
       origem: "interno", exige_endereco: false, exige_mesa: false,
       exige_referencia: false, referencia_auto: false, referencia_label: "",
+      cobra_taxa_servico: false,
     }]);
     setNovoLabel("");
   }
@@ -156,6 +158,10 @@ export default function TiposPedido() {
                     <label className="flex items-center gap-2 text-sm">
                       <Switch checked={t.exige_referencia} onCheckedChange={(v) => updateField(i, "exige_referencia", v)} />
                       Exige referência
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={t.cobra_taxa_servico} onCheckedChange={(v) => updateField(i, "cobra_taxa_servico", v)} />
+                      Cobra taxa de serviço
                     </label>
                   </div>
                   {t.exige_referencia && (

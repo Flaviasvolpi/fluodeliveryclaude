@@ -34,6 +34,7 @@ export class PedidosService {
 
       const subtotal = new Prisma.Decimal(dto.subtotal);
       const taxaEntrega = new Prisma.Decimal(dto.taxaEntrega ?? 0);
+      const taxaServico = new Prisma.Decimal(dto.taxaServico ?? 0);
 
       // 1. Upsert cliente if telefone provided
       if (dto.clienteTelefone) {
@@ -102,7 +103,7 @@ export class PedidosService {
         });
       }
 
-      const total = subtotal.minus(desconto).plus(taxaEntrega);
+      const total = subtotal.minus(desconto).plus(taxaEntrega).plus(taxaServico);
 
       // 3. Auto-manage conta for mesa/comanda types
       if (dto.mesaId) {
@@ -181,6 +182,7 @@ export class PedidosService {
           endereco: dto.endereco ?? Prisma.JsonNull,
           subtotal,
           taxaEntrega,
+          taxaServico,
           desconto,
           total,
           formaPagamentoId: dto.formaPagamentoId || null,

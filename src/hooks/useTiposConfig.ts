@@ -13,12 +13,13 @@ export interface TipoConfig {
   exige_referencia: boolean;
   referencia_auto: boolean;
   referencia_label: string;
+  cobra_taxa_servico: boolean;
 }
 
 const DEFAULT_TIPOS: TipoConfig[] = [
-  { tipo_key: "retirada", label: "Retirada", ativo: true, ordem: 0, origem: "online", exige_endereco: false, exige_mesa: false, exige_referencia: false, referencia_auto: false, referencia_label: "" },
-  { tipo_key: "entrega", label: "Entrega", ativo: true, ordem: 1, origem: "online", exige_endereco: true, exige_mesa: false, exige_referencia: false, referencia_auto: false, referencia_label: "" },
-  { tipo_key: "mesa", label: "Mesa", ativo: true, ordem: 2, origem: "interno", exige_endereco: false, exige_mesa: true, exige_referencia: false, referencia_auto: false, referencia_label: "" },
+  { tipo_key: "retirada", label: "Retirada", ativo: true, ordem: 0, origem: "online", exige_endereco: false, exige_mesa: false, exige_referencia: false, referencia_auto: false, referencia_label: "", cobra_taxa_servico: false },
+  { tipo_key: "entrega", label: "Entrega", ativo: true, ordem: 1, origem: "online", exige_endereco: true, exige_mesa: false, exige_referencia: false, referencia_auto: false, referencia_label: "", cobra_taxa_servico: false },
+  { tipo_key: "mesa", label: "Mesa", ativo: true, ordem: 2, origem: "interno", exige_endereco: false, exige_mesa: true, exige_referencia: false, referencia_auto: false, referencia_label: "", cobra_taxa_servico: true },
 ];
 
 export function useTiposConfig(empresaId: string) {
@@ -39,6 +40,7 @@ export function useTiposConfig(empresaId: string) {
         exige_referencia: d.exige_referencia ?? false,
         referencia_auto: d.referencia_auto ?? false,
         referencia_label: d.referencia_label ?? "",
+        cobra_taxa_servico: d.cobra_taxa_servico ?? false,
       }));
     },
     enabled: !!empresaId,

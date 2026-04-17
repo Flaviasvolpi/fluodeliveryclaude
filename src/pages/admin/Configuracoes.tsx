@@ -17,6 +17,7 @@ export default function Configuracoes() {
   const { empresaId } = useEmpresa();
   const queryClient = useQueryClient();
   const [taxaEntrega, setTaxaEntrega] = useState("");
+  const [taxaServicoPerc, setTaxaServicoPerc] = useState("10");
   const [bannerUrl, setBannerUrl] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [temaCardapio, setTemaCardapio] = useState("dark");
@@ -61,6 +62,8 @@ export default function Configuracoes() {
     if (configs) {
       const taxa = configs.find((c) => c.chave === "taxa_entrega_padrao");
       if (taxa) setTaxaEntrega(taxa.valor);
+      const taxaServ = configs.find((c) => c.chave === "taxa_servico_percentual");
+      if (taxaServ) setTaxaServicoPerc(taxaServ.valor);
       const banner = configs.find((c) => c.chave === "banner_url");
       if (banner) setBannerUrl(banner.valor);
       const logo = configs.find((c) => c.chave === "logo_url");
@@ -134,6 +137,17 @@ export default function Configuracoes() {
       toast.success("Configuração salva!");
     },
     onError: () => toast.error("Erro ao salvar configuração."),
+  });
+
+  const salvarTaxaServico = useMutation({
+    mutationFn: async () => {
+      await upsertConfig("taxa_servico_percentual", taxaServicoPerc);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["configuracoes", empresaId] });
+      toast.success("Taxa de serviço salva!");
+    },
+    onError: () => toast.error("Erro ao salvar taxa de serviço."),
   });
 
   const salvarTempoEspera = useMutation({
@@ -238,6 +252,35 @@ export default function Configuracoes() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Taxa de Serviço</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label>Percentual (%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                placeholder="10"
+                value={taxaServicoPerc}
+                onChange={(e) => setTaxaServicoPerc(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Aplicada somente aos <b>tipos de pedido</b> marcados como "Cobra taxa de serviço"
+                (ex: mesa, comanda). Calculada sobre o subtotal dos produtos, sem incidir sobre
+                a taxa de entrega.
+              </p>
+            </div>
+            <Button onClick={() => salvarTaxaServico.mutate()} disabled={salvarTaxaServico.isPending}>
+              <Save className="mr-2 h-4 w-4" />
+              {salvarTaxaServico.isPending ? "Salvando..." : "Salvar taxa de serviço"}
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader><CardTitle className="text-base">Aparência</CardTitle></CardHeader>
           <CardContent className="space-y-6">

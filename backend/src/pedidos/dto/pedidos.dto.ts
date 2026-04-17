@@ -35,6 +35,7 @@ export class CreatePedidoDto {
   @IsOptional() @IsObject() endereco?: Record<string, any>;
   @IsNumber() subtotal: number;
   @IsOptional() @IsNumber() taxaEntrega?: number;
+  @IsOptional() @IsNumber() taxaServico?: number;
   @IsOptional() @IsUUID() formaPagamentoId?: string;
   @IsOptional() @IsString() observacoes?: string;
   @IsOptional() @IsUUID() mesaId?: string;

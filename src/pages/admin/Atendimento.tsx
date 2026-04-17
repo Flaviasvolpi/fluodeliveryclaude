@@ -93,19 +93,19 @@ export default function Atendimento() {
   });
 
   const { data: categorias } = useQuery({
-    queryKey: ["categorias", empresaId],
+    queryKey: ["categorias-active", empresaId],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/categorias`);
+      const { data } = await api.get(`/empresas/${empresaId}/categorias/active`);
       return data;
     },
   });
 
   const { data: produtos, isLoading } = useQuery({
-    queryKey: ["atendimento-produtos", empresaId, search],
+    queryKey: ["atendimento-produtos-active", empresaId, search],
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (search) params.search = search;
-      const { data } = await api.get(`/empresas/${empresaId}/produtos`, { params });
+      const { data } = await api.get(`/empresas/${empresaId}/produtos/active`, { params });
       return data;
     },
   });
@@ -184,7 +184,22 @@ export default function Atendimento() {
 
   const subtotal = calcCartTotal(items);
   const taxaEntrega = selectedTipo?.exige_endereco ? (parseFloat(taxaEntregaValue) || 0) : 0;
-  const total = subtotal + taxaEntrega;
+
+  const { data: taxaServicoPerc } = useQuery({
+    queryKey: ["config-taxa-servico", empresaId],
+    queryFn: async () => {
+      const { data } = await api.get(`/empresas/${empresaId}/configuracoes`);
+      const conf = data?.find((c: any) => c.chave === "taxa_servico_percentual");
+      return parseFloat(conf?.valor ?? "0") || 0;
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const aplicaTaxaServico = !!selectedTipo?.cobra_taxa_servico && (taxaServicoPerc ?? 0) > 0;
+  const taxaServico = aplicaTaxaServico
+    ? Math.round((subtotal * (taxaServicoPerc ?? 0)) / 100 * 100) / 100
+    : 0;
+  const total = subtotal + taxaEntrega + taxaServico;
 
   const createPedido = useMutation({
     mutationFn: async () => {
@@ -202,6 +217,7 @@ export default function Atendimento() {
         endereco: selectedTipo.exige_endereco ? endereco : null,
         subtotal,
         taxa_entrega: taxaEntrega,
+        taxa_servico: taxaServico,
         total,
         forma_pagamento_id: null,
         pagar_na_entrega: selectedTipo.exige_endereco ? true : false,
@@ -224,9 +240,8 @@ export default function Atendimento() {
         })),
       };
       const { data } = await api.post(`/empresas/${empresaId}/pedidos`, payload);
-      const numero = data as number;
-
-      return numero;
+      const numero = Number(data?.numero_pedido ?? data?.numeroPedido ?? data);
+      return isNaN(numero) ? 0 : numero;
     },
     onSuccess: (numero) => {
       setPedidoNumero(numero);
@@ -361,7 +376,7 @@ export default function Atendimento() {
   // Step 3: Menu + order
   return (
     <AdminLayout>
-      <div className="space-y-0 overflow-hidden w-full max-w-[100vw]">
+      <div className="space-y-0 w-full max-w-[100vw]">
         <div className="flex items-center justify-between gap-2 mb-4 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setSelectedTipo(null); setSelectedMesaId(null); setReferencia(""); setForceTypeSelect(true); clearCart(); }}>←</Button>
@@ -421,6 +436,9 @@ export default function Atendimento() {
                     <div className="flex justify-between"><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>
                     {taxaEntrega > 0 && (
                       <div className="flex justify-between"><span>Taxa de entrega</span><span>{formatBRL(taxaEntrega)}</span></div>
+                    )}
+                    {taxaServico > 0 && (
+                      <div className="flex justify-between"><span>Taxa de serviço ({taxaServicoPerc}%)</span><span>{formatBRL(taxaServico)}</span></div>
                     )}
                     <div className="flex justify-between font-bold text-lg pt-1">
                       <span>Total</span><span className="text-primary">{formatBRL(total)}</span>
@@ -539,21 +557,21 @@ export default function Atendimento() {
         </div>
 
         {!isSearching && categorias && categorias.length > 0 && (
-          <div ref={catBarRef} className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none sticky top-0 z-10 bg-background pt-2">
-            <Button variant={activeCat === null ? "default" : "outline"} size="sm" onClick={() => { setActiveCat(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Todos</Button>
+          <div ref={catBarRef} className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border pt-3 shadow-sm">
+            <Button variant={activeCat === null ? "default" : "outline"} size="default" onClick={() => { setActiveCat(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-base font-semibold whitespace-nowrap">Todos</Button>
             {sections.map((s) => (
-              <Button key={s.id} data-cat-btn={s.id} variant={activeCat === s.id ? "default" : "outline"} size="sm" onClick={() => scrollToSection(s.id)} className="whitespace-nowrap">{s.nome}</Button>
+              <Button key={s.id} data-cat-btn={s.id} variant={activeCat === s.id ? "default" : "outline"} size="default" onClick={() => scrollToSection(s.id)} className="whitespace-nowrap text-base font-semibold">{s.nome}</Button>
             ))}
           </div>
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 w-full max-w-full overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0 w-full max-w-full overflow-hidden">
             {[1, 2, 3].map((i) => (<Card key={i} className="p-4"><LoadingSkeleton lines={4} /></Card>))}
           </div>
         ) : isSearching ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 w-full max-w-full overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0 w-full max-w-full overflow-hidden">
               {produtos?.map((p) => <ProductCard key={p.id} product={p} onClick={() => setSelectedProduct(p)} />)}
             </div>
             {produtos?.length === 0 && <div className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</div>}
@@ -562,8 +580,8 @@ export default function Atendimento() {
           <div className="space-y-8">
             {sections.map((section) => (
               <div key={section.id} ref={(el) => { sectionRefs.current[section.id] = el; }} data-cat-id={section.id} className="scroll-mt-28">
-                <h2 className="text-lg font-bold text-foreground mb-3">{section.nome}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0 w-full max-w-full overflow-hidden">
+                <h2 className="text-2xl font-bold text-foreground mb-4">{section.nome}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 min-w-0 w-full max-w-full overflow-hidden">
                   {section.items.map((p) => <ProductCard key={p.id} product={p} onClick={() => setSelectedProduct(p)} />)}
                 </div>
               </div>

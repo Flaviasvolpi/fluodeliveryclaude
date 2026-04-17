@@ -396,6 +396,7 @@ model Pedido {
   endereco         Json?
   subtotal         Decimal         @default(0) @db.Decimal(10, 2)
   taxaEntrega      Decimal         @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
+  taxaServico      Decimal         @default(0) @map("taxa_servico") @db.Decimal(10, 2)
   desconto         Decimal         @default(0) @db.Decimal(10, 2)
   total            Decimal         @default(0) @db.Decimal(10, 2)
   pedidoStatus     String          @default("novo") @map("pedido_status")
@@ -653,6 +654,7 @@ model PedidoTipoConfig {
   exigeReferencia Boolean @default(false) @map("exige_referencia")
   referenciaAuto  Boolean @default(false) @map("referencia_auto")
   referenciaLabel String? @map("referencia_label")
+  cobraTaxaServico Boolean @default(false) @map("cobra_taxa_servico")
 
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 

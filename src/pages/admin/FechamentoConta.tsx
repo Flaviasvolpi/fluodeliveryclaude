@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 
@@ -44,12 +44,12 @@ export default function FechamentoConta() {
     },
   });
 
-  // Fetch pedidos for selected conta
+  // Fetch pedidos for selected conta (filtra pelo contaId para não misturar com outras contas/mesas)
   const { data: pedidosConta } = useQuery({
     queryKey: ["pedidos-conta", selectedContaId],
     queryFn: async () => {
       const { data } = await api.get(`/empresas/${empresaId}/pedidos`);
-      return data;
+      return (data ?? []).filter((p: any) => (p.conta_id ?? p.contaId) === selectedContaId);
     },
     enabled: !!selectedContaId,
   });
@@ -75,7 +75,35 @@ export default function FechamentoConta() {
     );
   }, [pedidosConta]);
 
-  const contaTotal = selectedConta?.total ?? 0;
+  const contaTotal = Number(selectedConta?.total ?? 0);
+  const taxaServicoTotal = useMemo(() => {
+    if (!pedidosConta) return 0;
+    return pedidosConta.reduce((sum: number, p: any) => sum + Number(p.taxa_servico ?? 0), 0);
+  }, [pedidosConta]);
+  const subtotalSemTaxa = contaTotal - taxaServicoTotal;
+
+  // Quando a conta selecionada muda e o total fica disponível, inicializa pessoas no modo atual
+  useEffect(() => {
+    if (!selectedContaId || contaTotal <= 0) return;
+    if (splitMode === "unica") {
+      setPessoas([{ label: "Pagamento único", valor: contaTotal, forma_pagamento_id: null }]);
+    } else if (splitMode === "igual") {
+      const val = Math.round((contaTotal / numPessoas) * 100) / 100;
+      const diff = Math.round((contaTotal - val * numPessoas) * 100) / 100;
+      setPessoas(
+        Array.from({ length: numPessoas }, (_, i) => ({
+          label: `Pessoa ${i + 1}`,
+          valor: i === 0 ? val + diff : val,
+          forma_pagamento_id: null,
+        }))
+      );
+    } else if (splitMode === "valor") {
+      setPessoas([{ label: "Pessoa 1", valor: contaTotal, forma_pagamento_id: null }]);
+    } else if (splitMode === "item") {
+      setPessoas([{ label: "Pessoa 1", valor: 0, forma_pagamento_id: null, itemIds: [] }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedContaId, contaTotal]);
 
   // Initialize pessoas when split mode changes
   const initPessoas = (mode: SplitMode) => {
@@ -242,6 +270,25 @@ export default function FechamentoConta() {
                   </div>
                 ))}
               </div>
+              {taxaServicoTotal > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span>{formatBRL(subtotalSemTaxa)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Taxa de serviço</span>
+                      <span className="font-medium">{formatBRL(taxaServicoTotal)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold pt-1">
+                      <span>Total</span>
+                      <span className="text-primary">{formatBRL(contaTotal)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -368,7 +415,12 @@ export default function FechamentoConta() {
                 <Button
                   className="w-full"
                   size="lg"
-                  disabled={closeConta.isPending || (splitMode !== "item" && Math.abs(restante) > 0.01) || pessoas.some((p) => !p.forma_pagamento_id)}
+                  disabled={
+                    closeConta.isPending ||
+                    (splitMode !== "item" && Math.abs(restante) > 0.01) ||
+                    (splitMode === "item" && !allItems.every((it) => isItemAssigned(it.id))) ||
+                    pessoas.some((p) => (p.valor ?? 0) > 0 && !p.forma_pagamento_id)
+                  }
                   onClick={() => closeConta.mutate()}
                 >
                   {closeConta.isPending ? "Fechando..." : `Fechar Conta · ${formatBRL(contaTotal)}`}
