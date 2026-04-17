@@ -204,14 +204,14 @@ export class AuthService {
         await tx.pedidoTipoConfig.create({ data: { empresaId: empresa.id, ...tipo } });
       }
 
-      // 8. Status de pedido padrão
+      // 8. Status de pedido padrão (tiposAplicaveis define o fluxo kanban por tipo)
       const statuses = [
-        { statusKey: 'novo', label: 'Novo', cor: 'blue', ordem: 0 },
-        { statusKey: 'confirmado', label: 'Confirmado', cor: 'yellow', ordem: 1 },
-        { statusKey: 'preparo', label: 'Em Preparo', cor: 'orange', ordem: 2 },
-        { statusKey: 'pronto', label: 'Pronto', cor: 'green', ordem: 3 },
-        { statusKey: 'saiu_entrega', label: 'Saiu p/ Entrega', cor: 'purple', ordem: 4 },
-        { statusKey: 'entregue', label: 'Entregue', cor: 'gray', ordem: 5 },
+        { statusKey: 'novo', label: 'Novo', cor: 'blue', ordem: 0, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+        { statusKey: 'confirmado', label: 'Confirmado', cor: 'yellow', ordem: 1, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+        { statusKey: 'preparo', label: 'Em Preparo', cor: 'orange', ordem: 2, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+        { statusKey: 'pronto', label: 'Pronto', cor: 'green', ordem: 3, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+        { statusKey: 'saiu_entrega', label: 'Saiu p/ Entrega', cor: 'purple', ordem: 4, tiposAplicaveis: ['entrega', 'ifood'] },
+        { statusKey: 'entregue', label: 'Entregue', cor: 'gray', ordem: 5, tiposAplicaveis: ['retirada', 'entrega', 'ifood'] },
       ];
       for (const s of statuses) {
         await tx.pedidoStatusConfig.create({ data: { empresaId: empresa.id, ...s } });

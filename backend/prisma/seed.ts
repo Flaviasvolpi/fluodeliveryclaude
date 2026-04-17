@@ -104,13 +104,17 @@ async function main() {
   console.log(`✅ Tipos de pedido padrão criados`);
 
   // 8. Seed default pedido status config
+  // tiposAplicaveis define a quais tipos o status se aplica no fluxo kanban:
+  // - mesa/comanda terminam em 'pronto' (a conta fecha separado, não passam por entregue)
+  // - retirada termina em 'entregue' (cliente retira, pula saiu_entrega)
+  // - entrega/ifood passam por saiu_entrega antes de entregue
   const statuses = [
-    { statusKey: 'novo', label: 'Novo', cor: 'blue', ordem: 0 },
-    { statusKey: 'confirmado', label: 'Confirmado', cor: 'yellow', ordem: 1 },
-    { statusKey: 'preparo', label: 'Em Preparo', cor: 'orange', ordem: 2 },
-    { statusKey: 'pronto', label: 'Pronto', cor: 'green', ordem: 3 },
-    { statusKey: 'saiu_entrega', label: 'Saiu p/ Entrega', cor: 'purple', ordem: 4 },
-    { statusKey: 'entregue', label: 'Entregue', cor: 'gray', ordem: 5 },
+    { statusKey: 'novo', label: 'Novo', cor: 'blue', ordem: 0, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+    { statusKey: 'confirmado', label: 'Confirmado', cor: 'yellow', ordem: 1, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+    { statusKey: 'preparo', label: 'Em Preparo', cor: 'orange', ordem: 2, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+    { statusKey: 'pronto', label: 'Pronto', cor: 'green', ordem: 3, tiposAplicaveis: ['retirada', 'entrega', 'mesa', 'comanda', 'ifood'] },
+    { statusKey: 'saiu_entrega', label: 'Saiu p/ Entrega', cor: 'purple', ordem: 4, tiposAplicaveis: ['entrega', 'ifood'] },
+    { statusKey: 'entregue', label: 'Entregue', cor: 'gray', ordem: 5, tiposAplicaveis: ['retirada', 'entrega', 'ifood'] },
   ];
   for (const s of statuses) {
     await prisma.pedidoStatusConfig.upsert({

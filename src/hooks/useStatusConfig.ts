@@ -10,15 +10,17 @@ export interface StatusConfig {
   tipos_aplicaveis: string[];
 }
 
-const ALL_TIPOS: string[] = ["retirada", "entrega", "mesa"];
+const ALL_TIPOS: string[] = ["retirada", "entrega", "mesa", "comanda", "ifood"];
 
+// mesa/comanda terminam em 'pronto' (a conta fecha separado).
+// retirada vai direto de 'pronto' para 'entregue'. entrega/ifood passam por 'saiu_entrega'.
 const DEFAULT_STATUS_CONFIG: StatusConfig[] = [
   { status_key: "novo", label: "Novo", cor: "blue", ativo: true, ordem: 0, tipos_aplicaveis: ALL_TIPOS },
   { status_key: "confirmado", label: "Confirmado", cor: "yellow", ativo: true, ordem: 1, tipos_aplicaveis: ALL_TIPOS },
   { status_key: "preparo", label: "Em Preparo", cor: "orange", ativo: true, ordem: 2, tipos_aplicaveis: ALL_TIPOS },
   { status_key: "pronto", label: "Pronto", cor: "green", ativo: true, ordem: 3, tipos_aplicaveis: ALL_TIPOS },
-  { status_key: "saiu_entrega", label: "Saiu p/ Entrega", cor: "purple", ativo: true, ordem: 4, tipos_aplicaveis: ["entrega"] },
-  { status_key: "entregue", label: "Entregue", cor: "gray", ativo: true, ordem: 5, tipos_aplicaveis: ALL_TIPOS },
+  { status_key: "saiu_entrega", label: "Saiu p/ Entrega", cor: "purple", ativo: true, ordem: 4, tipos_aplicaveis: ["entrega", "ifood"] },
+  { status_key: "entregue", label: "Entregue", cor: "gray", ativo: true, ordem: 5, tipos_aplicaveis: ["retirada", "entrega", "ifood"] },
 ];
 
 export const LOCKED_STATUSES: string[] = ["novo", "pronto", "saiu_entrega", "entregue"];
