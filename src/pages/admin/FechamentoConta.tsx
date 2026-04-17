@@ -40,7 +40,9 @@ export default function FechamentoConta() {
   const { data: contas, isLoading } = useQuery({
     queryKey: ["contas-abertas", empresaId],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresaId}/contas`);
+      const { data } = await api.get(`/empresas/${empresaId}/contas`, {
+        params: { status: "aberta" },
+      });
       return data;
     },
   });
