@@ -191,6 +191,14 @@ export default function FechamentoConta() {
       if (splitMode !== "item" && Math.abs(restante) > 0.01) throw new Error("O valor total dos pagamentos não confere");
       if (pessoas.some((p) => (p.valor ?? 0) > 0 && !p.forma_pagamento_id)) throw new Error("Selecione a forma de pagamento para as pessoas com valor");
 
+      // Valida caixa aberto antes de qualquer gravação — senão os recebimentos
+      // ficam sem sessão e somem do fechamento do dia.
+      const { data: sessoes } = await api.get(`/empresas/${empresaId}/caixa/sessoes`, {
+        params: { status: "aberto" },
+      });
+      const sessao = Array.isArray(sessoes) ? sessoes[0] : sessoes;
+      if (!sessao) throw new Error("Abra o caixa antes de fechar contas (Caixa Diário → Abrir Caixa).");
+
       // Insert payments (ignora pessoas com valor 0)
       for (const p of pessoas) {
         if ((p.valor ?? 0) <= 0) continue;
@@ -216,26 +224,17 @@ export default function FechamentoConta() {
         }
       }
 
-      // Register caixa_recebimentos if there's an open session today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const { data: sessoes } = await api.get(`/empresas/${empresaId}/caixa/sessoes`, {
-        params: { status: "aberto" }
-      });
-      const sessao = Array.isArray(sessoes) ? sessoes[0] : sessoes;
-
-      if (sessao) {
-        for (const p of pessoas) {
-          if ((p.valor ?? 0) <= 0) continue;
-          await api.post(`/empresas/${empresaId}/caixa/recebimentos`, {
-            empresa_id: empresaId,
-            caixa_sessao_id: sessao.id,
-            conta_id: selectedContaId,
-            forma_pagamento_id: p.forma_pagamento_id,
-            valor: p.valor,
-            tipo_origem: "conta",
-          });
-        }
+      // Register caixa_recebimentos na sessão aberta (validada no topo)
+      for (const p of pessoas) {
+        if ((p.valor ?? 0) <= 0) continue;
+        await api.post(`/empresas/${empresaId}/caixa/recebimentos`, {
+          empresa_id: empresaId,
+          caixa_sessao_id: sessao.id,
+          conta_id: selectedContaId,
+          forma_pagamento_id: p.forma_pagamento_id,
+          valor: p.valor,
+          tipo_origem: "conta",
+        });
       }
     },
     onSuccess: () => {

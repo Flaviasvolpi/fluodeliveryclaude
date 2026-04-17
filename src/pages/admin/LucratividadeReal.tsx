@@ -44,25 +44,17 @@ export default function LucratividadeReal() {
   }, [preset, customFrom, customTo]);
 
   const { data: itens, isLoading } = useQuery({
-    queryKey: ["lucratividade-real", empresa.id, dateRange.from.toISOString(), dateRange.to.toISOString()],
+    queryKey: ["lucratividade-real", empresa.id, format(dateRange.from, "yyyy-MM-dd"), format(dateRange.to, "yyyy-MM-dd")],
     queryFn: async () => {
-      const { data } = await api.get(`/empresas/${empresa.id}/pedido-itens`);
-
-      if (!data) return [];
-
-      // Filter by date via pedidos
-      const pedidoIds = [...new Set(data.map((i) => i.pedido_id))];
-      if (pedidoIds.length === 0) return [];
-
-      // Fetch pedidos in the date range
       const { data: pedidos } = await api.get(`/empresas/${empresa.id}/pedidos`, {
-        params: { from: dateRange.from.toISOString(), to: dateRange.to.toISOString() }
+        params: {
+          dateFrom: format(dateRange.from, "yyyy-MM-dd"),
+          dateTo: format(dateRange.to, "yyyy-MM-dd"),
+        },
       });
-
       if (!pedidos) return [];
-      const validIds = new Set(pedidos.map((p) => p.id));
-
-      return data.filter((i) => validIds.has(i.pedido_id));
+      const validos = pedidos.filter((p: any) => p.pedido_status !== "cancelado");
+      return validos.flatMap((p: any) => p.itens ?? []);
     },
   });
 
